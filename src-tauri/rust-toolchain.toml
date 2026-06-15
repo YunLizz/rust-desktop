@@ -1,0 +1,8 @@
+# Prevent Rust compiler from calling `cargo` which requires internet access
+# during build (only used by `tauri build` or `cargo build`).
+
+[build]
+rustc-wrapper = "none"
+
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+tauri-plugin-shell = "2"
