@@ -1,0 +1,40 @@
+[package]
+name = "jinshu-rust"
+version = "0.1.0"
+edition = "2021"
+description = "锦书 · 现代化小说编辑器（Rust + egui）"
+license = "MIT"
+build = "build.rs"
+
+[package.metadata.winresource]
+OriginalFilename = "JinShu.exe"
+FileDescription = "锦书 · 现代化小说编辑器"
+ProductName = "锦书 JinShu"
+LegalCopyright = "Copyright © 2026 JinShu Team"
+CompanyName = "JinShu"
+InternalName = "JinShu"
+Comments = "Modern Novel Editor written in Rust + egui"
+
+[dependencies]
+eframe = "0.36"
+egui = "0.36"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+aes-gcm = "0.10"
+rand = "0.8"
+ureq = { version = "2", features = ["json"] }
+rfd = "0.15"
+chrono = "0.4"
+uuid = { version = "1", features = ["v4"] }
+sha2 = "0.10"
+scrypt = "0.11"
+flate2 = "1"
+
+[target.'cfg(windows)'.build-dependencies]
+winresource = "0.1"
+
+[profile.release]
+lto = "thin"
+opt-level = 3
+codegen-units = 1
+strip = "symbols"

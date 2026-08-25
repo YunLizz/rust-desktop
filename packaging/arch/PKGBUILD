@@ -1,0 +1,55 @@
+# Maintainer: JinShu Team <jinshu@example.com>
+# 锦书 · 小说编辑器（Tauri v2 · Arch Linux 打包）
+# 安装: makepkg -si   或   makepkg 后 pacman -U jinshu-rust-*.pkg.tar.zst
+
+pkgname=jinshu-rust
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="锦书 —— 为中文小说创作而生的本地编辑器（Tauri + Vue 3）：章节树/大纲/人物关系网/世界观/时间线/任务看板/写作统计，AI 创作助手，数据 AES-256-GCM 加密存储于安装目录"
+arch=('x86_64')
+url="https://github.com/example/jinshu-rust"
+license=('MIT')
+depends=('webkit2gtk-4.1' 'gtk3' 'noto-fonts-cjk' 'libxkbcommon' 'wayland')
+makedepends=('rust' 'cargo' 'nodejs' 'npm' 'base-devel' 'webkit2gtk-4.1' 'gtk3' 'librsvg' 'patchelf')
+source=("$pkgname-$pkgver.tar.gz")
+sha256sums=('SKIP')
+
+build() {
+  cd "$srcdir/$pkgname-$pkgver"
+  # 1. 前端构建
+  cd frontend
+  npm ci --no-audit --no-fund
+  npm run build
+  cd ..
+  # 2. 后端构建
+  cd src-tauri
+  cargo build --release --locked
+  cd ..
+}
+
+package() {
+  cd "$srcdir/$pkgname-$pkgver"
+  install -Dm755 src-tauri/target/release/jinshu "$pkgdir/opt/jinshu-rust/JinShu"
+  install -Dm644 README.md "$pkgdir/opt/jinshu-rust/README.md"
+  install -Dm644 "$srcdir/$pkgname-$pkgver/LICENSE" "$pkgdir/usr/share/licenses/$pkgname/LICENSE" 2>/dev/null || true
+
+  # 桌面入口
+  cat > "$pkgdir/usr/share/applications/jinshu-rust.desktop" <<'DESK'
+[Desktop Entry]
+Name=锦书
+Name[en]=JinShu
+Comment=中文小说创作编辑器（本地加密存储）
+Exec=/opt/jinshu-rust/JinShu
+Icon=jinshu-rust
+Terminal=false
+Type=Application
+Categories=Office;TextTools;
+StartupWMClass=jinshu-rust
+DESK
+}
+
+# 注意：
+# - 数据目录默认 = 安装目录 /opt/jinshu-rust/data（满足"缓存不入系统目录"要求）。
+#   系统级安装时 /opt 默认不可写，请设置环境变量 JINSHU_DATA_DIR=~/jinshu-data，
+#   或 chown -R $USER /opt/jinshu-rust 后数据直接落安装目录。
+# - 中文字体依赖 noto-fonts-cjk（Arch 官方源，默认不装，打包已声明）。

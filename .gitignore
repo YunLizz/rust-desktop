@@ -1,0 +1,11 @@
+# Rust build output
+/target
+**/target
+
+# Frontend dependencies
+/frontend/node_modules
+
+# Sensitive runtime data (encryption keys, never commit)
+/dist/**/data/.jinshu_key
+**/data/.jinshu_key
+**/data/*.jsr

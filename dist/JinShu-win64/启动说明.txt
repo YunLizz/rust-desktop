@@ -1,0 +1,19 @@
+锦书 · 小说编辑器（Windows 便携版 · Tauri）
+============================================
+
+使用：双击 JinShu.exe 即可运行，无需安装。
+
+数据与安全：
+· 所有作品、章节、设置均以 AES-256-GCM 加密文件存储在本目录 data/ 文件夹，
+  不会写入 %APPDATA%、%TEMP% 等系统目录。
+· 解密密钥 = data/.jinshu_key（随机 32 字节），请勿删除；移动整个文件夹即随身携带数据。
+· 磁盘上不存在任何明文文件（已自动化测试验证）。
+
+AI 功能：
+· 设置 → AI 服务：填写任意 OpenAI 兼容 / Anthropic 兼容服务的 API Key
+  （DeepSeek / Moonshot / 通义千问 / 智谱 / Ollama 本地 均有预设）。
+· API Key 加密存储，仅在你调用时发送给你配置的服务商。
+
+快捷键：
+Ctrl+N 新建小说   Ctrl+O 书库   Ctrl+S 保存   Ctrl+P 命令面板
+Ctrl+F 查找       Ctrl+B 侧栏   Ctrl+J AI 面板  Ctrl+=/Ctrl+- 字号
