@@ -41,7 +41,10 @@
 
     <!-- 大纲 -->
     <div v-else-if="store.activity === 'outline'" class="scroll">
-      <button class="btn sm" style="margin: 6px 10px" @click="aiOutline">✨ 生成大纲</button>
+      <div class="outline-tools">
+        <button class="btn sm" @click="aiOutline">✨ AI 生成</button>
+        <button class="btn sm" title="把当前卷/章结构导入大纲树" @click="outlineFromChapters">📋 从章节生成骨架</button>
+      </div>
       <OutlineTree :nodes="store.novel?.outline || []" :depth="0" />
     </div>
 
@@ -248,6 +251,30 @@ function newChain() {
   api.saveNovel(store.novel);
 }
 
+// 从章节结构生成大纲骨架
+function outlineFromChapters() {
+  const n = store.novel;
+  if (!n || !n.volumes?.length) {
+    toast("暂无章节，先生成章节再生成骨架", false);
+    return;
+  }
+  n.outline = n.volumes.map((v) => ({
+    id: "o" + Math.random().toString(36).slice(2, 8),
+    title: v.title,
+    kind: "卷",
+    content: "",
+    children: (v.chapters || []).map((c) => ({
+      id: "o" + Math.random().toString(36).slice(2, 8),
+      title: c.title,
+      kind: "章",
+      content: "",
+      children: [],
+    })),
+  }));
+  api.saveNovel(n);
+  toast("已从章节生成大纲骨架（可在详情中补充要点）");
+}
+
 // AI 大纲
 function aiOutline() {
   import("../store").then((m) => {
@@ -413,6 +440,7 @@ function gotoResult(r) {
 .warn-dot { color: var(--warn); font-size: 8px; }
 .dim-note { color: var(--text-3); font-size: 11.5px; padding: 10px 12px; }
 .vol-ops { color: var(--text-3); font-size: 11px; padding: 2px 10px; cursor: context-menu; }
+.outline-tools { display: flex; gap: 5px; padding: 6px 10px; flex-wrap: wrap; }
 .vol-ops:hover { color: var(--text-2); }
 .search-item { display: block; width: 100%; text-align: left; border: none; background: transparent; padding: 7px 10px; border-radius: 6px; cursor: pointer; font-family: inherit; }
 .search-item:hover { background: var(--hover); }

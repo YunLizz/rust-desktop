@@ -20,6 +20,7 @@ export const store = reactive({
   aiPanelOpen: true,
   focusMode: false,
   paletteOpen: false,
+  paletteQuery: "",
   findOpen: false,
   findReplace: false,
 

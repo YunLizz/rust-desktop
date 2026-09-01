@@ -27,6 +27,7 @@
       />
       <span class="ch-words">{{ store.wordCount }} 字</span>
       <div class="ch-actions">
+        <button class="btn sm" title="在当前段落首行插入两个全角空格缩进" @click="indentParagraph">␣ 首行缩进</button>
         <button class="btn sm" @click="quickContinue">✨ 续写</button>
         <button class="btn sm" @click="saveNow">💾 保存</button>
       </div>
@@ -77,9 +78,13 @@ let lastQuery = "";
 
 const fontFamily = () => {
   const f = store.settings.editor.font || "serif";
-  return f === "serif"
-    ? '"Noto Serif CJK SC", "Source Han Serif SC", "SimSun", "宋体", serif'
-    : '"Noto Sans CJK SC", "Microsoft YaHei", "PingFang SC", sans-serif';
+  const map = {
+    serif: '"Noto Serif CJK SC", "Source Han Serif SC", "SimSun", "宋体", serif',
+    sans: '"Noto Sans CJK SC", "Microsoft YaHei", "PingFang SC", sans-serif',
+    kai: '"KaiTi", "楷体", "STKaiti", "Noto Serif CJK SC", serif',
+    fangsong: '"FangSong", "仿宋", "STFangsong", "Noto Serif CJK SC", serif',
+  };
+  return map[f] || map.serif;
 };
 
 function editorExtensions() {
@@ -94,6 +99,7 @@ function editorExtensions() {
         letterSpacing: s.font === "serif" ? "0.02em" : "0",
         caretColor: "var(--accent)",
         padding: "18px 24px",
+        textAlign: s.justify !== false ? "justify" : "left",
       },
       ".cm-line": { padding: "0 2px" },
       ".cm-scroller": { fontFamily: fontFamily(), lineHeight: `${s.line_spacing}` },
@@ -286,6 +292,21 @@ function replaceAll() {
   toast("替换完成");
 }
 
+// 首行缩进：当前段落首插入两个全角空格
+function indentParagraph() {
+  if (!view) return;
+  const pos = view.state.selection.main.head;
+  const line = view.state.doc.lineAt(pos);
+  const text = line.text;
+  if (text.startsWith("　　")) {
+    // 已有缩进则移除
+    view.dispatch({ changes: { from: line.from, to: line.from + 2 } });
+  } else {
+    view.dispatch({ changes: { from: line.from, insert: "　　" } });
+  }
+  view.focus();
+}
+
 // 章节头续写
 function quickContinue() {
   import("../store").then((m) => {
@@ -308,7 +329,7 @@ function onInsert(e) {
 
 // 设置变化时重建主题
 watch(
-  () => [store.settings.editor.font_size, store.settings.editor.line_spacing, store.settings.editor.font, store.settings.editor.markdown_highlight, store.settings.theme],
+  () => [store.settings.editor.font_size, store.settings.editor.line_spacing, store.settings.editor.font, store.settings.editor.markdown_highlight, store.settings.editor.justify, store.settings.theme],
   () => {
     if (view && store.activeTab) {
       const cached = stateCache.get(store.activeTab);

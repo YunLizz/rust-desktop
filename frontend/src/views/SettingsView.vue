@@ -37,8 +37,7 @@
         <div class="sec-body">
           <div class="row">
             <span class="row-label">正文字体</span>
-            <button class="pill" :class="{ active: store.settings.editor.font === 'serif' }" @click="setFont('serif')">宋体类（衬线）</button>
-            <button class="pill" :class="{ active: store.settings.editor.font !== 'serif' }" @click="setFont('sans')">黑体类（无衬线）</button>
+            <button v-for="f in fontOptions" :key="f.id" class="pill" :class="{ active: store.settings.editor.font === f.id }" @click="setFont(f.id)">{{ f.label }}</button>
           </div>
           <div class="row">
             <span class="row-label">字号</span>
@@ -53,6 +52,11 @@
           <div class="row">
             <span class="row-label">自动换行</span>
             <label class="switch"><input type="checkbox" v-model="store.settings.editor.wrap" @change="persist" /><span class="slider"></span></label>
+          </div>
+          <div class="row">
+            <span class="row-label">两端对齐</span>
+            <label class="switch"><input type="checkbox" v-model="store.settings.editor.justify" @change="persist" /><span class="slider"></span></label>
+            <span class="hint">中文排版推荐开启（Word 式）</span>
           </div>
           <div class="row">
             <span class="row-label">行号</span>
@@ -169,6 +173,13 @@ const accents = [
   ["绯红", [250, 110, 156]],
   ["黛紫蓝", [110, 139, 255]],
   ["樱粉", [242, 139, 194]],
+];
+
+const fontOptions = [
+  { id: "serif", label: "宋体" },
+  { id: "sans", label: "黑体" },
+  { id: "kai", label: "楷体" },
+  { id: "fangsong", label: "仿宋" },
 ];
 
 const providers = [

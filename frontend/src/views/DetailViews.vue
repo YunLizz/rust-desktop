@@ -161,6 +161,11 @@
               v-for="t in colTasks(ci)"
               :key="t.id"
               class="task-card"
+              draggable="true"
+              @dragstart="dragTask = t.id"
+              @dragend="dragTask = null"
+              @dragover.prevent
+              @drop.prevent="dropTask(ci)"
               @dblclick="cycle(t)"
               @contextmenu.prevent="openTaskMenu($event, t)"
             >
@@ -259,6 +264,7 @@ const canvas = ref(null);
 const cw = 1800;
 const ch = 1200;
 const drag = ref(null);
+const dragTask = ref(null);
 
 function pos(id) {
   if (!store.canvasPos[id]) {
@@ -325,6 +331,15 @@ function newTask() {
 function moveTask(t, status) {
   t.status = status;
   save();
+}
+function dropTask(status) {
+  if (!dragTask.value) return;
+  const t = (store.novel?.tasks || []).find((x) => x.id === dragTask.value);
+  if (t) {
+    t.status = status;
+    save();
+  }
+  dragTask.value = null;
 }
 function cycle(t) {
   t.status = (t.status + 1) % 3;
@@ -428,6 +443,8 @@ const outNode = computed(() => {
   cursor: pointer;
 }
 .task-card:hover { border-color: var(--border-strong); }
+.task-card[draggable="true"] { cursor: grab; }
+.task-card[draggable="true"]:active { cursor: grabbing; }
 .tc-title { font-size: 12.5px; color: var(--text); }
 .tc-desc { font-size: 10.5px; color: var(--text-3); margin-top: 3px; }
 .tc-ops { display: flex; gap: 4px; margin-top: 6px; }

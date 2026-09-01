@@ -1,5 +1,5 @@
 <template>
-  <header class="titlebar" data-tauri-drag-region>
+  <header class="titlebar">
     <div class="brand" data-tauri-drag-region>
       <span class="logo">📖</span>
       <span class="name">锦书</span>

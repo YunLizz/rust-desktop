@@ -1,7 +1,14 @@
-import { createApp } from "vue";
+import { createApp, watch } from "vue";
 import App from "./App.vue";
 import "./styles/theme.css";
 import { store, applyTheme } from "./store";
+
+// 主题/强调色/缩放变化自动应用（无论从哪个入口修改）
+watch(
+  () => [store.settings?.theme, store.settings?.accent, store.settings?.ui_scale],
+  () => applyTheme(),
+  { deep: true }
+);
 import { api } from "./api";
 import { listen } from "@tauri-apps/api/event";
 

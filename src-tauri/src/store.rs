@@ -49,6 +49,13 @@ pub struct EditorSettings {
     /// 保存时自动为首段添加全角缩进（若未手动缩进）
     pub auto_indent: bool,
     pub show_line_numbers: bool,
+    /// 中文排版：两端对齐（Word 式）
+    #[serde(default = "default_true")]
+    pub justify: bool,
+}
+
+fn default_true() -> bool {
+    true
 }
 
 impl Default for EditorSettings {
@@ -61,6 +68,7 @@ impl Default for EditorSettings {
             markdown_highlight: false,
             auto_indent: false,
             show_line_numbers: true,
+            justify: true,
         }
     }
 }

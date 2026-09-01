@@ -1,8 +1,8 @@
 # 📖 锦书 · 小说编辑器（JinShu-rust）
 
-为中文小说创作而生的本地编辑器。Rust + egui 构建，**现代 IDE 风格界面**，章节树 / 大纲 / 人物关系网 / 世界观 / 时间线 / 任务看板 / 写作统计开箱即用，AI 创作助手可接入你自己的大模型 API Key，**全部数据以 AES-256-GCM 加密文件缓存于软件安装目录**，不写入任何系统目录。
+为中文小说创作而生的本地编辑器。**Tauri v2（Rust 后端 + Vue 3 Web 前端）**构建，现代化 IDE 风格界面，章节树 / 大纲 / 人物关系网 / 世界观 / 时间线 / 任务看板 / 写作统计开箱即用，AI 创作助手可接入你自己的大模型 API Key，**全部数据以 AES-256-GCM 加密文件缓存于软件安装目录**，不写入任何系统目录。
 
-![界面](docs/screenshot.png)
+![界面](../../docs/screenshot.png)
 
 ---
 
@@ -11,7 +11,7 @@
 | 模块 | 说明 |
 | --- | --- |
 | 📑 章节管理 | 卷/章树形结构、多标签页、自动保存、拖拽排序（上移/下移）、字数实时统计 |
-| ✍️ 编辑器 | 自研编辑器：同步行号、当前行高亮、行距/字距/字号/字体（宋体/黑体）调节、查找替换、全局搜索、Markdown 高亮开关（中文写作默认关闭，`#` `*` 原样显示） |
+| ✍️ 编辑器 | CodeMirror 6：行号、当前行高亮、行距/字距/字号/字体（宋体/黑体）调节、查找替换、跨标签页撤销历史、全局搜索、Markdown 高亮开关（中文写作默认关闭，`#` `*` 原样显示） |
 | 🗂 大纲 | 树形大纲（卷→章→节→要点）、从 AI 回复一键应用为大纲、节点增删改 |
 | 👥 人物 | 人物卡（外貌/性格/背景/目标）、角色定位、**关系网画布**（可拖拽布局） |
 | 🗺 世界观 | 地点层级树（国家→城市→建筑）、设定描述 |
@@ -49,11 +49,9 @@
 
 ### Windows 11
 
-1. 下载 `JinShu-rust-win64.zip`，解压到任意目录（如 `D:\Apps\JinShu`）
-2. 双击 `JinShu.exe`
+1. 下载 `JinShu-rust-win64-tauri.zip`（约 4MB），解压到任意目录（如 `D:\Apps\JinShu`）
+2. 双击 `JinShu.exe`（Win10/11 自带 WebView2，无需安装任何运行时）
 3. 数据保存在 exe 同目录 `data/`，整个文件夹可随身携带
-
-> 无边框现代化标题栏默认开启；如需系统原生标题栏，设置环境变量 `JINSHU_NATIVE_TITLEBAR=1`。
 
 ### Arch Linux
 
@@ -69,21 +67,24 @@ makepkg -si        # 安装到系统
 **方式二：便携版**
 
 ```bash
-bash build_pkg_arch.sh   # 在项目根目录（需要 Rust 工具链）
+bash build_pkg_arch.sh   # 在项目根目录（需要 Rust 工具链 + Node 工具链）
 # 产物: dist/JinShu-rust-arch-x86_64.tar.gz —— 解压到 ~/Apps 直接运行
 ./JinShu
 ```
 
-依赖：`libxkbcommon wayland libx11 libxcb`（Arch 桌面默认具备）；中文字体已内置，无需额外安装。
+依赖：`webkit2gtk-4.1 gtk3 noto-fonts-cjk`（PKGBUILD 已声明）；中文字体来自系统 noto-fonts-cjk。
 
 ### 从源码构建
 
 ```bash
-cargo build --release
-./target/release/jinshu-rust        # Windows: jinshu-rust.exe
+# 1. 前端
+cd frontend && npm install && npm run build && cd ..
+# 2. 后端（自动嵌入前端产物）
+cd src-tauri && cargo build --release
+./src-tauri/target/release/jinshu        # Windows: jinshu.exe
 ```
 
-需要 Rust 1.85+（edition 2021）。
+需要 Rust 1.85+ 与 Node 20+。
 
 ## ⌨️ 快捷键
 
@@ -99,12 +100,12 @@ cargo build --release
 ## 🧪 测试
 
 ```bash
-cargo test    # 加密往返 / 密码备份 / 字数统计 / 导出格式 / 大纲解析 / 加密落盘 7 项
+cd src-tauri && cargo test    # 加密往返 / 密码备份 / 字数统计 / 导出格式 / 大纲解析 / 加密落盘 7 项
 ```
 
 ## 🏗 技术栈
 
-Rust · egui 0.36（自研编辑器组件：同步行号 / Markdown 高亮 / 行距控制）· AES-256-GCM（RustCrypto）· Scrypt（.jsb 备份）· ureq（AI 流式客户端）· rfd（原生文件对话框）
+Rust + Tauri 2 · Vue 3 · CodeMirror 6（编辑器：行号/高亮/查找替换/撤销历史）· AES-256-GCM（RustCrypto）· Scrypt（.jsb 备份）· ureq（AI 流式客户端）
 
 ## 📄 许可
 
