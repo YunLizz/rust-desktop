@@ -5,7 +5,5 @@
 # Frontend dependencies
 /frontend/node_modules
 
-# Sensitive runtime data (encryption keys, never commit)
-/dist/**/data/.jinshu_key
-**/data/.jinshu_key
-**/data/*.jsr
+# Runtime data directory (encryption keys, settings, user novels - never commit)
+**/data/
