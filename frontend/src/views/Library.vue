@@ -16,11 +16,6 @@
           <div class="wc-title">打开书库</div>
           <div class="wc-sub">浏览本地作品库</div>
         </div>
-        <div class="w-card" @click="store.dialog = { kind: 'import' }">
-          <div class="wc-icon">🔑</div>
-          <div class="wc-title">导入备份</div>
-          <div class="wc-sub">从 .jsb 加密备份恢复</div>
-        </div>
       </div>
       <div v-if="store.settings?.recent?.length" class="w-recent">
         <div class="wr-label">最近打开</div>
@@ -36,7 +31,6 @@
         <div class="lib-title">📚 我的书库</div>
         <div class="lib-actions">
           <button class="btn" @click="refresh">刷新</button>
-          <button class="btn" @click="store.dialog = { kind: 'import' }">导入 .jsb</button>
           <button class="btn primary" @click="store.dialog = { kind: 'newNovel' }">＋ 新建小说</button>
         </div>
       </div>

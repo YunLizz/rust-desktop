@@ -16,7 +16,6 @@
           <div class="sub">在左侧「章节」面板选择或新建一个章节；没有作品时先到书库新建一部</div>
         </div>
       </main>
-      <AIPanel v-if="!store.focusMode" />
     </div>
     <StatusBar />
     <Palette v-if="store.paletteOpen" />
@@ -40,7 +39,6 @@ import ActivityBar from "./components/ActivityBar.vue";
 import SidePanel from "./components/SidePanel.vue";
 import StatusBar from "./components/StatusBar.vue";
 import EditorView from "./components/EditorView.vue";
-import AIPanel from "./components/AIPanel.vue";
 import Palette from "./components/Palette.vue";
 import Modal from "./components/Modal.vue";
 import ContextMenu from "./components/ContextMenu.vue";

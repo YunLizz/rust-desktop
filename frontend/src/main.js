@@ -10,7 +10,6 @@ watch(
   { deep: true }
 );
 import { api } from "./api";
-import { listen } from "@tauri-apps/api/event";
 
 async function init() {
   try {
@@ -37,31 +36,6 @@ async function init() {
   }
 }
 
-// AI 事件
-listen("ai-chunk", (e) => {
-  store.aiStreamText += e.payload;
-});
-listen("ai-done", () => {
-  const content = store.aiStreamText;
-  if (content.trim()) {
-    store.aiMsgs.push({ role: "assistant", content, action: store.aiAction });
-  }
-  store.aiStreaming = false;
-  store.aiStreamText = "";
-  store.aiAction = "";
-});
-listen("ai-error", (e) => {
-  store.aiMsgs.push({ role: "error", content: e.payload, action: store.aiAction });
-  store.aiStreaming = false;
-  store.aiStreamText = "";
-  store.aiAction = "";
-});
-listen("ai-test-result", (e) => {
-  const p = e.payload;
-  store.aiTestResult = p && p.Ok ? [true, p.Ok] : p && p.Err ? [false, p.Err] : [false, String(p)];
-  setTimeout(() => (store.aiTestResult = null), 6000);
-});
-
 // 禁用 WebView2 默认右键菜单（后退/刷新等），改用应用内自定义菜单
 document.addEventListener("contextmenu", (e) => e.preventDefault());
 
@@ -83,10 +57,6 @@ window.addEventListener("keydown", async (e) => {
   if (mod && e.key === "b") {
     e.preventDefault();
     store.sidebarOpen = !store.sidebarOpen;
-  }
-  if (mod && e.key === "j") {
-    e.preventDefault();
-    store.aiPanelOpen = !store.aiPanelOpen;
   }
   if (mod && e.key === "=") {
     e.preventDefault();

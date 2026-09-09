@@ -10,7 +10,6 @@
       </template>
     </div>
     <div class="right">
-      <span class="item dim" :class="{ streaming: store.aiStreaming }">{{ store.aiStreaming ? "✨ AI 生成中…" : "✨ AI 就绪" }}</span>
       <span class="item dim">UTF-8</span>
       <span class="item dim" :title="store.dataDir">🔑 {{ shortFp }}</span>
     </div>
@@ -47,5 +46,4 @@ const shortFp = computed(() => {
 .item.ok { color: var(--ok); }
 .item.warn { color: var(--warn); }
 .item.dim { color: var(--text-3); }
-.streaming { color: var(--accent); }
 </style>

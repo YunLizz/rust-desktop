@@ -42,7 +42,6 @@
     <!-- 大纲 -->
     <div v-else-if="store.activity === 'outline'" class="scroll">
       <div class="outline-tools">
-        <button class="btn sm" @click="aiOutline">✨ AI 生成</button>
         <button class="btn sm" title="把当前卷/章结构导入大纲树" @click="outlineFromChapters">📋 从章节生成骨架</button>
       </div>
       <OutlineTree :nodes="store.novel?.outline || []" :depth="0" />
@@ -132,7 +131,6 @@
 import { ref, computed, h } from "vue";
 import { store, toast, openTab, saveAll, allChapters } from "../store";
 import { api } from "../api";
-import * as prompts from "../prompts";
 
 const headTitle = computed(() => ({
   chapters: "章节",
@@ -273,14 +271,6 @@ function outlineFromChapters() {
   }));
   api.saveNovel(n);
   toast("已从章节生成大纲骨架（可在详情中补充要点）");
-}
-
-// AI 大纲
-function aiOutline() {
-  import("../store").then((m) => {
-    store.aiPanelOpen = true;
-    m.startAi("大纲生成", prompts.buildOutline());
-  });
 }
 
 // 角色标签色

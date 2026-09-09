@@ -13,9 +13,5 @@ export const api = {
   loadSettings: () => invoke("load_settings"),
   saveSettings: (settings) => invoke("save_settings", { settings }),
   exportWork: (p) => invoke("export_work", p),
-  importJsb: (path, password) => invoke("import_jsb", { path, password }),
   openDir: (path) => invoke("open_dir", { path }),
-  aiStart: (cfg, messages) => invoke("ai_start", { cfg, messages }),
-  aiCancel: () => invoke("ai_cancel"),
-  aiTest: (cfg) => invoke("ai_test", { cfg }),
 };

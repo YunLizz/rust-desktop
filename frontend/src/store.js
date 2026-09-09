@@ -17,21 +17,11 @@ export const store = reactive({
 
   activity: "library", // library|chapters|outline|characters|world|timeline|tasks|search|stats|settings
   sidebarOpen: true,
-  aiPanelOpen: true,
   focusMode: false,
   paletteOpen: false,
   paletteQuery: "",
   findOpen: false,
   findReplace: false,
-
-  aiMsgs: [],
-  aiStreaming: false,
-  aiStreamText: "",
-  aiAction: "",
-  aiInput: "",
-  useLore: true,
-  summaries: {},
-  aiTestResult: null,
 
   selChar: null,
   selLoc: null,
@@ -73,8 +63,6 @@ export async function openNovel(id) {
     store.dirty = {};
     store.openTabs = [];
     store.activeTab = null;
-    store.aiMsgs = [];
-    store.summaries = {};
     for (const c of chapters) store.chapters[c.id] = c.text;
     store.activity = "chapters";
     store.sidebarOpen = true;
@@ -210,42 +198,6 @@ export function applyTheme() {
   document.documentElement.style.setProperty("--accent-soft", `rgba(${r}, ${g}, ${b}, 0.15)`);
   document.documentElement.style.setProperty("--accent-softer", `rgba(${r}, ${g}, ${b}, 0.07)`);
   document.documentElement.style.setProperty("--accent-strong", `rgb(${Math.min(255, r + 25)}, ${Math.min(255, g + 25)}, ${Math.min(255, b + 25)})`);
-}
-
-// ---------- AI ----------
-export function startAi(action, messages) {
-  if (store.aiStreaming) {
-    toast("已有任务进行中，请先停止", false);
-    return;
-  }
-  const cfg = store.settings.ai;
-  if (!cfg.api_key?.trim()) {
-    toast("请先在「设置 → AI 服务」填写 API Key", false);
-    store.activity = "settings";
-    return;
-  }
-  store.aiMsgs.push({ role: "user", content: messages.join("\n\n"), action });
-  store.aiStreaming = true;
-  store.aiStreamText = "";
-  store.aiAction = action;
-  api.aiStart(cfg, [{ role: "user", content: messages.join("\n\n") }]).catch((e) => {
-    store.aiStreaming = false;
-    store.aiMsgs.push({ role: "error", content: String(e), action });
-  });
-}
-
-export function aiInsertToEditor(content) {
-  const cid = store.activeTab;
-  if (!cid) {
-    toast("请先打开一个章节", false);
-    return;
-  }
-  // 通知 EditorView 在光标处插入（通过自定义事件）
-  window.dispatchEvent(new CustomEvent("jinshu:insert", { detail: { cid, content } }));
-}
-
-export function aiCancel() {
-  api.aiCancel();
 }
 
 // ---------- 辅助 ----------

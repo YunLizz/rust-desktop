@@ -75,26 +75,9 @@
             </button>
           </div>
           <p class="hint">{{ fmtHint }}</p>
-          <template v-if="form.fmt === 'jsb'">
-            <label>设置密码（Scrypt 派生密钥，密码不落盘）</label>
-            <input class="input" type="password" v-model="form.pwd" placeholder="密码" />
-            <input class="input" type="password" v-model="form.pwd2" placeholder="再次输入密码" style="margin-top:6px" />
-            <p class="hint err" v-if="form.pwd && form.pwd !== form.pwd2">两次密码不一致</p>
-          </template>
           <div class="modal-foot">
             <button class="btn" @click="close">取消</button>
             <button class="btn primary" :disabled="!canExport" @click="doExport">导出</button>
-          </div>
-        </template>
-
-        <!-- 导入 -->
-        <template v-else-if="d.kind === 'import'">
-          <label>备份文件密码</label>
-          <input class="input" type="password" v-model="form.pwd" placeholder="备份文件的密码" autofocus />
-          <p class="hint">选择 .jsb 加密备份文件，验证密码后导入为一部新小说。</p>
-          <div class="modal-foot">
-            <button class="btn" @click="close">取消</button>
-            <button class="btn primary" :disabled="!form.pwd" @click="doImport">选择文件并导入</button>
           </div>
         </template>
 
@@ -128,7 +111,7 @@
               </div>
             </div>
             <div v-if="!namerResults.length" class="hint" style="text-align:center;padding:14px 0">
-              点击「生成」获取本地算法起的名字（不消耗 AI 额度）
+              点击「生成」获取本地算法起的名字
             </div>
           </div>
         </template>
@@ -141,8 +124,7 @@
             <p>为中文小说创作而生的本地编辑器（Tauri + Vue 3）。</p>
             <p>
               · 数据 AES-256-GCM 加密存储于安装目录，不写入系统目录<br />
-              · 支持 txt / md 导出与 .jsb 密码加密备份<br />
-              · 接入任意 OpenAI 兼容 / Anthropic API：大纲、续写、润色、评审一站式<br />
+              · 支持 txt / md 导出<br />
               · 章节树 / 大纲 / 人物关系网 / 世界观 / 时间线 / 任务看板 / 写作统计
             </p>
             <p class="dim">技术栈：Rust + Tauri 2 · Vue 3 · CodeMirror 6 · 开源协议 MIT</p>
@@ -160,7 +142,7 @@
 import { reactive, computed, ref } from "vue";
 import { store, toast, createNovel, openNovel, saveAll , allChapters } from "../store";
 import { api } from "../api";
-import { save, open } from "@tauri-apps/plugin-dialog";
+import { save } from "@tauri-apps/plugin-dialog";
 import { generateNames, STYLES, GENDERS } from "../names";
 
 const d = computed(() => store.dialog);
@@ -171,8 +153,6 @@ const form = reactive({
   desc: "",
   volId: "",
   fmt: "md",
-  pwd: "",
-  pwd2: "",
 });
 
 const volumes = computed(() => store.novel?.volumes || []);
@@ -188,8 +168,7 @@ const title = computed(() => {
     case "deleteVolume": return "🗑 删除卷";
     case "deleteNovel": return "🗑 删除小说";
     case "export": return "📤 导出作品";
-    case "import": return "📥 导入 .jsb 备份";
-    case "namer": return "🎲 本地起名机（不消耗 AI）";
+    case "namer": return "🎲 本地起名机";
     case "about": return "关于锦书";
     default: return "";
   }
@@ -208,15 +187,13 @@ const confirmText = computed(() => {
 const fmts = [
   { id: "txt", label: "纯文本 (.txt)" },
   { id: "md", label: "Markdown (.md)" },
-  { id: "jsb", label: "加密备份 (.jsb)" },
 ];
 const fmtHint = computed(() => ({
   txt: "通用纯文本，可导入任何写作平台",
   md: "保留卷/章标题结构",
-  jsb: "密码保护，可跨设备恢复",
 }[form.fmt]));
 
-const canExport = computed(() => form.fmt !== "jsb" || (form.pwd && form.pwd === form.pwd2));
+const canExport = computed(() => form.fmt === "txt" || form.fmt === "md");
 
 function close() {
   store.dialog = null;
@@ -333,7 +310,6 @@ async function doExport() {
     await api.exportWork({
       fmt: form.fmt,
       path,
-      password: form.fmt === "jsb" ? form.pwd : null,
       novel: n,
       chapters,
     });
@@ -342,25 +318,6 @@ async function doExport() {
     toast(`导出失败：${e}`, false);
   }
   close();
-}
-
-async function doImport() {
-  let path = null;
-  try {
-    path = await open({ title: "选择 .jsb 备份", filters: [{ name: "JSB 备份", extensions: ["jsb"] }] });
-  } catch (e) {
-    /* cancelled */
-  }
-  if (!path) return;
-  try {
-    const id = await api.importJsb(path, form.pwd);
-    store.library = await api.listNovels();
-    close();
-    await openNovel(id);
-    toast("备份已导入");
-  } catch (e) {
-    toast(`导入失败：${e}`, false);
-  }
 }
 
 const width = computed(() =>

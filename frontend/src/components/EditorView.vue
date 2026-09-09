@@ -28,7 +28,6 @@
       <span class="ch-words">{{ store.wordCount }} 字</span>
       <div class="ch-actions">
         <button class="btn sm" title="在当前段落首行插入两个全角空格缩进" @click="indentParagraph">␣ 首行缩进</button>
-        <button class="btn sm" @click="quickContinue">✨ 续写</button>
         <button class="btn sm" @click="saveNow">💾 保存</button>
       </div>
     </div>
@@ -57,7 +56,6 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from "vue";
 import { store, markDirty, saveChapterNow, saveAll, countWords, toast , allChapters } from "../store";
 import { api } from "../api";
-import * as prompts from "../prompts";
 
 import { EditorView, keymap, lineNumbers, highlightActiveLine, drawSelection, highlightSpecialChars, placeholder } from "@codemirror/view";
 import { EditorState, Prec } from "@codemirror/state";
@@ -307,15 +305,7 @@ function indentParagraph() {
   view.focus();
 }
 
-// 章节头续写
-function quickContinue() {
-  import("../store").then((m) => {
-    store.aiPanelOpen = true;
-    m.startAi("续写", prompts.buildContinue());
-  });
-}
-
-// AI 插入
+// 外部内容插入（起名机“插入到正文”等）
 function onInsert(e) {
   const { cid, content } = e.detail;
   if (cid !== store.activeTab || !view) return;

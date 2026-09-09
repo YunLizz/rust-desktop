@@ -169,13 +169,12 @@ fn save_settings(state: State<AppData>, settings: store::AppSettings) -> Result<
     s.save_settings(&settings)
 }
 
-// ---------- 导出 / 导入 ----------
+// ---------- 导出 ----------
 #[tauri::command]
 fn export_work(
     state: State<AppData>,
     fmt: String,
     path: String,
-    password: Option<String>,
     novel: model::Novel,
     chapters: Vec<(String, String, String)>,
 ) -> Result<(), String> {
@@ -184,25 +183,8 @@ fn export_work(
     match fmt.as_str() {
         "txt" => export::export_txt(&novel, &chapters, &p),
         "md" => export::export_md(&novel, &chapters, &p),
-        "jsb" => {
-            let pwd = password.unwrap_or_default();
-            export::export_jsb(&pwd, &novel, &chapters, &p)
-        }
         _ => Err("未知导出格式".into()),
     }
-}
-
-/// 导入 .jsb 备份，返回新小说 id
-#[tauri::command]
-fn import_jsb(
-    state: State<AppData>,
-    path: String,
-    password: String,
-) -> Result<String, String> {
-    let s = state.store.lock().map_err(|e| e.to_string())?;
-    let bytes = std::fs::read(&path).map_err(|e| format!("读取文件失败: {}", e))?;
-    let (mut novel, chapters) = export::import_jsb(&password, &bytes)?;
-    export::import_to_store(&s, &mut novel, &chapters)
 }
 
 #[tauri::command]
@@ -301,7 +283,6 @@ fn main() {
             load_settings,
             save_settings,
             export_work,
-            import_jsb,
             open_dir,
             ai_start,
             ai_cancel,

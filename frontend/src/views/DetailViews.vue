@@ -8,7 +8,6 @@
           <span class="d-hint">（所有修改自动保存）</span>
           <div class="d-actions">
             <button class="btn sm" @click="store.showRelCanvas = true">🧩 关系网</button>
-            <button class="btn sm" @click="aiChar">✨ AI 完善人设</button>
             <button class="btn sm danger" @click="delChar">🗑 删除</button>
           </div>
         </div>
@@ -197,7 +196,7 @@
       <div v-else class="empty">
         <div class="emoji">🗂️</div>
         <div class="title">在左侧选中一个大纲节点</div>
-        <div class="sub">或点击「✨ 生成大纲」由 AI 创建</div>
+        <div class="sub">或点击侧栏「从章节生成骨架」快速建立大纲</div>
       </div>
     </template>
   </div>
@@ -207,7 +206,6 @@
 import { ref, computed, onMounted, onBeforeUnmount, watch } from "vue";
 import { store, toast , allChapters } from "../store";
 import { api } from "../api";
-import * as prompts from "../prompts";
 
 const char = computed(() => store.novel?.characters?.find((c) => c.id === store.selChar));
 const loc = computed(() => store.novel?.locations?.find((l) => l.id === store.selLoc));
@@ -250,14 +248,7 @@ function addRel() {
   relTarget.value = "";
   relText.value = "";
   save();
-}
-function aiChar() {
-  if (!char.value) return;
-  import("../store").then((m) => {
-    store.aiPanelOpen = true;
-    m.startAi("人物卡", prompts.buildCharacterCard(char.value.name, char.value.role));
-  });
-}
+ }
 
 // ---------- 关系网画布 ----------
 const canvas = ref(null);
