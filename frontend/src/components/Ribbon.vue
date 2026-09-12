@@ -52,29 +52,6 @@
       >{{ store.timelineOpen ? "▴" : "▾" }}</button>
     </div>
 
-    <!-- 可折叠横向时间轴 -->
-    <div class="tl-strip" v-if="store.timelineOpen">
-      <div class="tls-label">剧情时间轴</div>
-      <div class="tls-track">
-        <div class="tls-line"></div>
-        <div
-          v-for="(e, i) in timelineEvents"
-          :key="e.id"
-          class="tls-node"
-          :class="{ cur: e.chapter_id === store.activeTab, linked: e.chapter_id }"
-          :title="eventTip(e)"
-          @click="focusEvent(e)"
-        >
-          <span class="tls-dot"></span>
-          <span class="tls-time">{{ e.time || "—" }}</span>
-          <span class="tls-name">{{ e.title }}</span>
-        </div>
-        <div v-if="!timelineEvents.length" class="tls-empty">
-          还没有时间线事件 — 在「设定」中新建，或点右侧工具格「时间轴」
-        </div>
-      </div>
-      <button class="tls-add" title="新建事件" @click="quickAddEvent">＋</button>
-    </div>
   </div>
 </template>
 
@@ -192,7 +169,7 @@ const currentGroups = computed(() => {
     groups.push({
       name: "顶栏横向轴",
       items: [
-        { icon: "⏱️", label: store.timelineOpen ? "收起时间轴" : "展开时间轴", run: () => (store.timelineOpen = !store.timelineOpen), primary: store.timelineOpen },
+        { icon: "🎬", label: store.timelineOpen ? "收起时间轴" : "展开时间轴", run: () => (store.timelineOpen = !store.timelineOpen), primary: store.timelineOpen },
       ],
     });
     groups.push({
@@ -336,37 +313,6 @@ function outlineFromChapters() {
 }
 
 // ---- 横向时间轴 ----
-const timelineEvents = computed(() =>
-  [...(store.novel?.timeline || [])].sort((a, b) => String(a.time || "").localeCompare(String(b.time || "")))
-);
-function eventTip(e) {
-  let t = e.title + "（" + (e.time || "") + "）";
-  if (e.description) t += " — " + e.description;
-  return t;
-}
-function focusEvent(e) {
-  if (e.chapter_id) {
-    openTab(e.chapter_id);
-  }
-  store.rightTool = "timeline";
-  store.rightOpen = true;
-}
-function quickAddEvent() {
-  if (!store.novel) return toast("请先打开一部小说", false);
-  store.novel.timeline.push({
-    id: "e" + Math.random().toString(36).slice(2, 8),
-    title: "新事件",
-    time: "第1卷",
-    description: "",
-    character_ids: [],
-    location_id: null,
-    chapter_id: store.activeTab,
-  });
-  api.saveNovel(store.novel);
-  store.rightTool = "timeline";
-  store.rightOpen = true;
-  toast("已新建事件（右栏可编辑）");
-}
 
 // ---- 窗口控制 ----
 const maximized = ref(false);

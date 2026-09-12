@@ -166,8 +166,8 @@
       <!-- ===== 任务 ===== -->
       <div v-else-if="store.rightTool === 'tasks'" class="rt-body">
         <div class="tl-toolbar">
-          <span class="rt-hint">待办 {{ counts[0] }} · 进行 {{ counts[1] }} · 完成 {{ counts[2] }}</span>
-          <button class="btn sm" @click="newTask">＋ 新建</button>
+          <span class="rt-hint">未开始 {{ counts[0] }} · 进行 {{ counts[1] }} · 完成 {{ counts[2] }}</span>
+          <button class="btn sm" @click="newTask">＋ 新建任务</button>
         </div>
         <div class="tl-scroll">
           <div v-for="(col, ci) in taskCols" :key="ci">
@@ -175,16 +175,35 @@
             <div
               v-for="t in byStatus[ci]" :key="t.id"
               class="tk-card"
+              :class="{ dark: t.is_public === false, sel: t.id === store.selTask }"
               draggable="true"
               @dragstart="dragTask = t.id"
               @dragover.prevent
               @drop.prevent="dropTask(ci)"
+              @click="store.selTask = t.id"
             >
-              <input class="tk-title" v-model="t.title" @change="save" />
-              <textarea class="tk-desc" rows="1" v-model="t.description" placeholder="说明…" @change="save"></textarea>
+              <div class="tk-top">
+                <input class="tk-title" v-model="t.title" @change="save" />
+                <button class="icon-btn" :title="t.is_public === false ? '暗线（读者未知）· 点击改为公开' : '公开 · 点击改为暗线'"
+                        @click.stop="t.is_public = t.is_public === false; save()">
+                  {{ t.is_public === false ? "🌑" : "☀" }}
+                </button>
+              </div>
+              <textarea class="tk-desc" rows="1" v-model="t.description" placeholder="目标说明…" @change="save"></textarea>
+              <!-- 归属角色 / 关联章节 -->
+              <div class="tk-links">
+                <select class="tk-select" v-model="t.character_id" @change="save" :title="'归属角色'">
+                  <option :value="null">未归属角色</option>
+                  <option v-for="c in (store.novel?.characters || [])" :key="c.id" :value="c.id">{{ c.name }}</option>
+                </select>
+                <select class="tk-select" v-model="t.chapter_id" @change="save" :title="'关联章节'">
+                  <option :value="null">不关联章节</option>
+                  <option v-for="c in allChapters(store.novel)" :key="c.id" :value="c.id">{{ c.title }}</option>
+                </select>
+              </div>
               <div class="tk-ops">
-                <button v-if="ci > 0" class="icon-btn" @click="t.status = ci - 1; save()">◀</button>
-                <button v-if="ci < 2" class="icon-btn" @click="t.status = ci + 1; save()">▶</button>
+                <button v-if="ci > 0" class="icon-btn" title="退一步" @click="t.status = ci - 1; save()">◀</button>
+                <button v-if="ci < 2" class="icon-btn" title="推进一步" @click="t.status = ci + 1; save()">▶</button>
                 <button class="icon-btn danger" style="margin-left:auto" @click="delTask(t.id)">🗑</button>
               </div>
             </div>
@@ -210,7 +229,7 @@ const tools = [
   { id: "map", icon: "🗺", name: "地图", desc: "地点分布画布", badge: () => (store.novel?.locations || []).length || null },
   { id: "graph", icon: "🧩", name: "关系网", desc: "人物关系图谱", badge: () => (store.novel?.characters || []).length || null },
   { id: "timeline", icon: "⏱", name: "时间轴", desc: "剧情事件脉络", badge: () => (store.novel?.timeline || []).length || null },
-  { id: "tasks", icon: "🎯", name: "任务", desc: "任务看板", badge: () => (store.novel?.tasks || []).filter((t) => t.status < 2).length || null },
+  { id: "tasks", icon: "🎯", name: "任务线", desc: "角色任务与目标", badge: () => (store.novel?.tasks || []).filter((t) => t.status < 2).length || null },
 ];
 const currentTool = computed(() => tools.find((t) => t.id === store.rightTool));
 
@@ -362,7 +381,20 @@ const byStatus = computed(() => [0, 1, 2].map((s) => (store.novel?.tasks || []).
 const counts = computed(() => byStatus.value.map((a) => a.length));
 const dragTask = ref(null);
 function newTask() {
-  store.novel.tasks.push({ id: "t" + Math.random().toString(36).slice(2, 8), title: "新任务", description: "", status: 0, chain_id: null });
+  const t = {
+    id: "t" + Math.random().toString(36).slice(2, 8),
+    title: "新任务",
+    description: "",
+    status: 0,
+    chain_id: null,
+    character_id: store.selChar || null,
+    chapter_id: store.activeTab || null,
+    is_public: true,
+    order: (store.novel?.tasks || []).length,
+  };
+  store.novel.tasks = store.novel.tasks || [];
+  store.novel.tasks.push(t);
+  store.selTask = t.id;
   save();
 }
 function delTask(id) {
@@ -618,6 +650,23 @@ function dropTask(status) {
   margin-top: 4px;
   line-height: 1.6;
 }
+.tk-top { display: flex; align-items: center; gap: 3px; }
+.tk-links { display: flex; gap: 4px; margin-top: 4px; }
+.tk-select {
+  flex: 1;
+  min-width: 0;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--text-2);
+  font-size: 10px;
+  padding: 2px 4px;
+  outline: none;
+  font-family: inherit;
+  cursor: pointer;
+}
+.tk-card.dark { border-left: 2px solid var(--purple); }
+.tk-card.sel { border-color: var(--accent); }
 .tk-ops { display: flex; gap: 2px; margin-top: 4px; }
 .tk-empty { font-size: 10.5px; color: var(--text-3); padding: 2px 8px 6px; }
 </style>

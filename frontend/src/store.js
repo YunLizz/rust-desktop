@@ -38,6 +38,7 @@ export const store = reactive({
   selEvent: null,
   selOutline: null,
   selChain: "all",
+  selTask: null,
   showRelCanvas: false,
   canvasPos: {},
 

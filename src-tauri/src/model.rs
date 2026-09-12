@@ -1,6 +1,14 @@
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
+fn default_true() -> bool {
+    true
+}
+
+fn default_mainline() -> String {
+    "主线".to_string()
+}
+
 #[derive(Serialize, Deserialize, Clone, Default)]
 #[serde(default)]
 pub struct NovelMeta {
@@ -86,6 +94,12 @@ pub struct TimelineEvent {
     pub character_ids: Vec<String>,
     pub location_id: Option<String>,
     pub chapter_id: Option<String>,
+    /// 剪辑式轨道的横向排序位置（拖动调整）
+    #[serde(default)]
+    pub order: i32,
+    /// 事件类型：主线 / 支线 / 暗线 / 回忆（决定轨道颜色）
+    #[serde(default = "default_mainline")]
+    pub kind: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, Default)]
@@ -94,8 +108,18 @@ pub struct Task {
     pub id: String,
     pub title: String,
     pub description: String,
-    pub status: u8, // 0 待办 1 进行中 2 已完成
+    pub status: u8, // 0 未开始 1 进行中 2 已完成
     pub chain_id: Option<String>,
+    /// 归属角色（这是「角色的任务」，不是作者的待办）
+    pub character_id: Option<String>,
+    /// 关联章节（任务在哪一章推进/完成）
+    pub chapter_id: Option<String>,
+    /// 公开 / 暗线：false = 暗线（伏笔，读者尚未知晓）
+    #[serde(default = "default_true")]
+    pub is_public: bool,
+    /// 在任务线列表中的排序
+    #[serde(default)]
+    pub order: i32,
 }
 
 #[derive(Serialize, Deserialize, Clone, Default)]

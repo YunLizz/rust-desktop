@@ -91,6 +91,47 @@
       <div v-if="!(store.novel?.characters || []).length" class="lp-note">还没有人物，点右上 ＋ 新建</div>
     </div>
 
+    <!-- ===== 5. 任务线（角色的任务，按角色分组） ===== -->
+    <div v-else-if="store.leftTree === 'tasks'" class="lp-scroll">
+      <!-- 任务链过滤 -->
+      <div class="tl-chains">
+        <button class="chain-pill" :class="{ active: !taskChainFilter }" @click="taskChainFilter = null">全部</button>
+        <button
+          v-for="ch in store.novel?.chains || []"
+          :key="ch.id"
+          class="chain-pill"
+          :class="{ active: taskChainFilter === ch.id }"
+          @click="taskChainFilter = ch.id"
+        >{{ ch.name }}</button>
+        <button class="chain-pill add" title="新建任务链" @click="newChain">＋链</button>
+      </div>
+
+      <!-- 按角色分组 -->
+      <template v-for="grp in taskGroups" :key="grp.key">
+        <div class="count-head">
+          <span class="tg-who">{{ grp.icon }} {{ grp.name }}</span>
+          <span class="tg-stat">{{ grp.tasks.filter(t=>t.status===2).length }}/{{ grp.tasks.length }} 完成</span>
+        </div>
+        <button
+          v-for="t in grp.tasks"
+          :key="t.id"
+          class="row task-row"
+          :class="{ done: t.status === 2, dark: t.is_public === false }"
+          @click="selectTask(t)"
+          @contextmenu.prevent="taskMenu($event, t)"
+        >
+          <span class="tk-state" :class="'s' + t.status">{{ ["○", "◐", "●"][t.status] || "○" }}</span>
+          <span class="row-name">{{ t.title }}</span>
+          <span class="tk-dark" v-if="t.is_public === false" title="暗线（读者未知）">暗</span>
+          <span class="tk-ch" v-if="chapterTitleOf(t.chapter_id)" :title="'关联：' + chapterTitleOf(t.chapter_id)">章</span>
+        </button>
+      </template>
+
+      <div v-if="!taskGroups.length" class="lp-note">
+        {{ taskChainFilter ? "该任务链下暂无任务" : "还没有任务线<br />点右上 ＋ 为角色新建任务/目标" }}
+      </div>
+    </div>
+
     <!-- ===== 4. 世界观树（含地图） ===== -->
     <div v-else class="lp-scroll">
       <div v-for="grp in locGroups" :key="grp.kind">
@@ -116,6 +157,7 @@ const treeTabs = [
   { id: "outline", icon: "🗂️", name: "大纲", tip: "大纲：卷/章/节/要点", count: () => (store.novel?.outline || []).length || null },
   { id: "characters", icon: "👥", name: "人物", tip: "人物：按定位分组", count: () => (store.novel?.characters || []).length || null },
   { id: "world", icon: "🗺️", name: "世界", tip: "世界观：地点层级与地图", count: () => (store.novel?.locations || []).length || null },
+  { id: "tasks", icon: "🎯", name: "任务线", tip: "角色的任务与目标（非作者待办）", count: () => (store.novel?.tasks || []).filter((t) => t.status < 2).length || null },
 ];
 const treeLabel = computed(() => treeTabs.find((t) => t.id === store.leftTree)?.tip || "");
 const addTip = computed(() => ({
@@ -123,6 +165,7 @@ const addTip = computed(() => ({
   outline: "新建大纲节点",
   characters: "新建人物",
   world: "新建地点",
+  tasks: "新建任务（角色目标）",
 }[store.leftTree]));
 
 function addCurrent() {
@@ -137,11 +180,28 @@ function addCurrent() {
     store.novel.characters.push(c);
     store.selChar = c.id;
     api.saveNovel(store.novel);
-  } else {
+  } else if (t === "world") {
     const l = { id: uid("l"), name: "新地点", kind: "城市", parent_id: null, description: "" };
     store.novel.locations.push(l);
     store.selLoc = l.id;
     api.saveNovel(store.novel);
+  } else if (t === "tasks") {
+    // 新建任务：优先归属当前选中人物
+    const t2 = {
+      id: uid("t"),
+      title: "新任务",
+      description: "",
+      status: 0,
+      chain_id: null,
+      character_id: store.selChar || null,
+      chapter_id: store.activeTab || null,
+      is_public: true,
+      order: (store.novel.tasks || []).length,
+    };
+    store.novel.tasks = store.novel.tasks || [];
+    store.novel.tasks.push(t2);
+    api.saveNovel(store.novel);
+    selectTask(t2);
   }
 }
 const uid = (p) => p + Math.random().toString(36).slice(2, 8);
@@ -217,6 +277,66 @@ function charMenu(e, c) {
         api.saveNovel(store.novel);
       } },
   ]);
+}
+
+// ---- 任务线（角色的任务）----
+const taskChainFilter = ref(null);
+const taskGroups = computed(() => {
+  const tasks = (store.novel?.tasks || []).filter((t) => !taskChainFilter.value || t.chain_id === taskChainFilter.value);
+  const groups = new Map();
+  for (const t of tasks) {
+    const key = t.character_id || "__none__";
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(t);
+  }
+  const out = [];
+  // 先出有归属角色的分组
+  for (const c of store.novel?.characters || []) {
+    if (groups.has(c.id)) {
+      out.push({ key: c.id, name: c.name, icon: "👤", tasks: groups.get(c.id).sort((a, b) => (a.order || 0) - (b.order || 0)) });
+      groups.delete(c.id);
+    }
+  }
+  if (groups.has("__none__")) {
+    out.push({ key: "__none__", name: "未归属角色", icon: "❓", tasks: groups.get("__none__") });
+  }
+  return out;
+});
+function chapterTitleOf(cid) {
+  if (!cid) return "";
+  return allChapters(store.novel).find((c) => c.id === cid)?.title || "";
+}
+function selectTask(t) {
+  store.selTask = t.id;
+  store.rightTool = "tasks";
+  store.rightOpen = true;
+}
+function taskMenu(e, t) {
+  const chars = store.novel?.characters || [];
+  const chaps = allChapters(store.novel);
+  menu(e, [
+    { label: "编辑（在右栏）", run: () => selectTask(t) },
+    { label: t.is_public === false ? "标记为公开" : "标记为暗线", run: () => { t.is_public = t.is_public === false; api.saveNovel(store.novel); } },
+    ...chars.slice(0, 6).map((c) => ({
+      label: "归属 → " + c.name,
+      run: () => { t.character_id = c.id; api.saveNovel(store.novel); },
+    })),
+    ...chaps.slice(0, 6).map((c) => ({
+      label: "关联 → " + c.title.slice(0, 12),
+      run: () => { t.chapter_id = c.id; api.saveNovel(store.novel); },
+    })),
+    { label: "删除任务", danger: true, run: () => {
+        store.novel.tasks = store.novel.tasks.filter((x) => x.id !== t.id);
+        api.saveNovel(store.novel);
+      } },
+  ]);
+}
+function newChain() {
+  const ch = { id: "h" + Math.random().toString(36).slice(2, 8), name: "新任务链", description: "", task_ids: [] };
+  store.novel.chains = store.novel.chains || [];
+  store.novel.chains.push(ch);
+  api.saveNovel(store.novel);
+  toast("已新建任务链");
 }
 
 // ---- 世界观 ----
@@ -453,6 +573,51 @@ function delLoc(id) {
   font-size: 9px;
   color: var(--accent);
   border: 1px solid var(--accent);
+  border-radius: 3px;
+  padding: 0 3px;
+  flex-shrink: 0;
+}
+/* 任务线 */
+.tl-chains {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 2px 8px 6px;
+}
+.chain-pill {
+  border: 1px solid var(--border);
+  background: var(--panel-alt);
+  color: var(--text-3);
+  font-size: 10.5px;
+  padding: 2px 9px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.12s;
+}
+.chain-pill:hover { color: var(--text); border-color: var(--border-strong); }
+.chain-pill.active { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.chain-pill.add { border-style: dashed; padding: 2px 7px; }
+.tg-who { color: var(--text-2); }
+.tg-stat { float: right; }
+.task-row .tk-state { font-size: 11px; flex-shrink: 0; width: 12px; text-align: center; }
+.task-row .tk-state.s0 { color: var(--text-3); }
+.task-row .tk-state.s1 { color: var(--warn); }
+.task-row .tk-state.s2 { color: var(--ok); }
+.task-row.done .row-name { color: var(--text-3); text-decoration: line-through; }
+.task-row.dark .row-name { font-style: italic; }
+.tk-dark {
+  font-size: 9px;
+  color: var(--purple);
+  border: 1px solid var(--purple);
+  border-radius: 3px;
+  padding: 0 3px;
+  flex-shrink: 0;
+}
+.tk-ch {
+  font-size: 9px;
+  color: var(--text-3);
+  border: 1px solid var(--border);
   border-radius: 3px;
   padding: 0 3px;
   flex-shrink: 0;

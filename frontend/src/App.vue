@@ -18,43 +18,48 @@
       </main>
     </div>
 
-    <!-- 写作台：三栏，均可拖拽 -->
-    <div class="body" v-else-if="store.novel">
-      <template v-if="!store.focusMode">
-        <LeftPane v-if="store.leftOpen" />
-        <DragHandle
-          v-if="store.leftOpen"
-          :get="() => store.leftWidth"
-          :set="(w) => (store.leftWidth = w)"
-          :dir="1"
-          :min="220"
-          :max="560"
-          :fallback="280"
-        />
-      </template>
+    <!-- 写作台：顶栏横向时间轴 + 三栏 -->
+    <template v-else-if="store.novel">
+      <!-- 剪辑式横向时间轴（可折叠） -->
+      <TimelineTrack v-if="!store.focusMode" />
 
-      <main class="central">
-        <EditorView v-if="store.activeTab" />
-        <div v-else class="empty">
-          <div class="emoji">📑</div>
-          <div class="title">还没有打开章节</div>
-          <div class="sub">在左侧章节树点击一个章节开始写作</div>
-        </div>
-      </main>
+      <div class="body">
+        <template v-if="!store.focusMode">
+          <LeftPane v-if="store.leftOpen" />
+          <DragHandle
+            v-if="store.leftOpen"
+            :get="() => store.leftWidth"
+            :set="(w) => (store.leftWidth = w)"
+            :dir="1"
+            :min="220"
+            :max="560"
+            :fallback="300"
+          />
+        </template>
 
-      <template v-if="!store.focusMode">
-        <DragHandle
-          v-if="store.rightOpen"
-          :get="() => store.rightWidth"
-          :set="(w) => (store.rightWidth = w)"
-          :dir="-1"
-          :min="280"
-          :max="640"
-          :fallback="340"
-        />
-        <RightPane v-if="store.rightOpen" />
-      </template>
-    </div>
+        <main class="central">
+          <EditorView v-if="store.activeTab" />
+          <div v-else class="empty">
+            <div class="emoji">📑</div>
+            <div class="title">还没有打开章节</div>
+            <div class="sub">在左侧章节树点击一个章节开始写作</div>
+          </div>
+        </main>
+
+        <template v-if="!store.focusMode">
+          <DragHandle
+            v-if="store.rightOpen"
+            :get="() => store.rightWidth"
+            :set="(w) => (store.rightWidth = w)"
+            :dir="-1"
+            :min="280"
+            :max="640"
+            :fallback="400"
+          />
+          <RightPane v-if="store.rightOpen" />
+        </template>
+      </div>
+    </template>
 
     <!-- 无作品：欢迎页 -->
     <div class="body" v-else>
@@ -94,6 +99,7 @@ import Library from "./views/Library.vue";
 import StatsView from "./views/StatsView.vue";
 import SettingsView from "./views/SettingsView.vue";
 import RelationGraph from "./views/RelationGraph.vue";
+import TimelineTrack from "./components/TimelineTrack.vue";
 
 const fullViewName = computed(
   () => ({ library: "书库", stats: "写作统计", settings: "设置", graph: "人物关系网" }[store.fullView] || "")
