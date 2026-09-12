@@ -56,7 +56,7 @@ window.addEventListener("keydown", async (e) => {
   }
   if (mod && e.key === "b") {
     e.preventDefault();
-    store.sidebarOpen = !store.sidebarOpen;
+    store.leftOpen = !store.leftOpen;
   }
   if (mod && e.key === "=") {
     e.preventDefault();

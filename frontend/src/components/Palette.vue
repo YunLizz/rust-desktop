@@ -40,21 +40,21 @@ const input = ref(null);
 
 const commands = [
   { icon: "📝", label: "新建小说", kbd: "Ctrl+N", run: () => (store.dialog = { kind: "newNovel" }) },
-  { icon: "📚", label: "打开书库", kbd: "Ctrl+O", run: () => { store.activity = "library"; store.library = api.listNovels(); } },
+  { icon: "📚", label: "打开书库", kbd: "Ctrl+O", run: () => { store.fullView = "library"; store.library = api.listNovels(); } },
   { icon: "💾", label: "保存全部", kbd: "Ctrl+S", run: async () => { const { saveAll } = await import("../store"); await saveAll(); toast("已保存（加密写入本地）"); } },
   { icon: "📤", label: "导出作品", run: () => store.novel ? (store.dialog = { kind: "export" }) : toast("请先打开一部小说", false) },
   { icon: "📄", label: "新建章节", run: () => store.novel ? (store.dialog = { kind: "newChapter" }) : null },
   { icon: "📁", label: "新建分卷", run: () => store.novel ? (store.dialog = { kind: "newVolume" }) : null },
   { icon: "🎲", label: "本地起名机（人物/书名/地名）", run: () => (store.dialog = { kind: "namer" }) },
-  { icon: "🖥️", label: "切换侧边栏", kbd: "Ctrl+B", run: () => (store.sidebarOpen = !store.sidebarOpen) },
+  { icon: "🖥️", label: "切换左栏", kbd: "Ctrl+B", run: () => (store.leftOpen = !store.leftOpen) },
   { icon: "🌗", label: "切换深色/浅色主题", run: async () => {
       const { applyTheme, saveSettings } = await import("../store");
       store.settings.theme = store.settings.theme === "dark" ? "light" : "dark";
       applyTheme(); saveSettings();
     } },
   { icon: "🔍", label: "查找", kbd: "Ctrl+F", run: () => (store.findOpen = true) },
-  { icon: "📊", label: "写作统计", run: () => (store.activity = "stats") },
-  { icon: "⚙️", label: "打开设置", run: () => (store.activity = "settings") },
+  { icon: "📊", label: "写作统计", run: () => (store.fullView = "stats") },
+  { icon: "⚙️", label: "打开设置", run: () => (store.fullView = "settings") },
   { icon: "ℹ️", label: "关于锦书", run: () => (store.dialog = { kind: "about" }) },
 ];
 

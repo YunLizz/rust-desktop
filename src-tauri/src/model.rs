@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
 #[derive(Serialize, Deserialize, Clone, Default)]
+#[serde(default)]
 pub struct NovelMeta {
     pub id: String,
     pub title: String,
@@ -15,6 +16,7 @@ pub struct NovelMeta {
 }
 
 #[derive(Serialize, Deserialize, Clone, Default)]
+#[serde(default)]
 pub struct ChapterMeta {
     pub id: String,
     pub title: String,
@@ -23,6 +25,7 @@ pub struct ChapterMeta {
 }
 
 #[derive(Serialize, Deserialize, Clone, Default)]
+#[serde(default)]
 pub struct Volume {
     pub id: String,
     pub title: String,
@@ -31,6 +34,7 @@ pub struct Volume {
 
 /// 树形大纲节点：卷 / 章 / 节 / 要点
 #[derive(Serialize, Deserialize, Clone, Default)]
+#[serde(default)]
 pub struct OutlineNode {
     pub id: String,
     pub title: String,
@@ -40,6 +44,7 @@ pub struct OutlineNode {
 }
 
 #[derive(Serialize, Deserialize, Clone, Default)]
+#[serde(default)]
 pub struct Relationship {
     pub target_id: String,
     pub target_name: String,
@@ -48,6 +53,7 @@ pub struct Relationship {
 }
 
 #[derive(Serialize, Deserialize, Clone, Default)]
+#[serde(default)]
 pub struct Character {
     pub id: String,
     pub name: String,
@@ -61,6 +67,7 @@ pub struct Character {
 }
 
 #[derive(Serialize, Deserialize, Clone, Default)]
+#[serde(default)]
 pub struct Location {
     pub id: String,
     pub name: String,
@@ -70,6 +77,7 @@ pub struct Location {
 }
 
 #[derive(Serialize, Deserialize, Clone, Default)]
+#[serde(default)]
 pub struct TimelineEvent {
     pub id: String,
     pub title: String,
@@ -81,6 +89,7 @@ pub struct TimelineEvent {
 }
 
 #[derive(Serialize, Deserialize, Clone, Default)]
+#[serde(default)]
 pub struct Task {
     pub id: String,
     pub title: String,
@@ -90,6 +99,7 @@ pub struct Task {
 }
 
 #[derive(Serialize, Deserialize, Clone, Default)]
+#[serde(default)]
 pub struct TaskChain {
     pub id: String,
     pub name: String,
@@ -98,6 +108,7 @@ pub struct TaskChain {
 }
 
 #[derive(Serialize, Deserialize, Clone, Default)]
+#[serde(default)]
 pub struct Novel {
     pub meta: NovelMeta,
     pub volumes: Vec<Volume>,

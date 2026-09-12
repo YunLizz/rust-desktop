@@ -15,8 +15,18 @@ export const store = reactive({
   openTabs: [],
   activeTab: null,
 
-  activity: "library", // library|chapters|outline|characters|world|timeline|tasks|search|stats|settings
-  sidebarOpen: true,
+  // ======== 新布局模型（Ribbon + 三栏可拖拽）========
+  ribbonTab: "writing",   // Ribbon 选项卡: writing | lore | tools | view
+  leftTree: "chapters",   // 左栏 4 树: chapters | outline | characters | world
+  rightTool: null,        // 右栏工具: null(工具格) | namer | map | graph | timeline | tasks
+  timelineOpen: false,    // 顶栏横向时间轴是否展开
+  mapPos: {},             // 地图节点位置
+  fullView: null,         // 全屏视图（覆盖三栏）: library | stats | settings | graph
+  leftWidth: 300,         // 左栏宽度（可拖拽）
+  rightWidth: 400,        // 右栏宽度（可拖拽）
+  leftOpen: true,
+  rightOpen: true,
+  aiPanelOpen: true,      // 保留：AI 功能恢复时使用
   focusMode: false,
   paletteOpen: false,
   paletteQuery: "",
@@ -64,8 +74,8 @@ export async function openNovel(id) {
     store.openTabs = [];
     store.activeTab = null;
     for (const c of chapters) store.chapters[c.id] = c.text;
-    store.activity = "chapters";
-    store.sidebarOpen = true;
+    store.fullView = null;
+    store.leftOpen = true;
     touchRecent(id, novel.meta.title);
     // 恢复上次打开的章节
     const last = store.settings.lastChapter?.[id];
@@ -109,14 +119,14 @@ export async function closeNovel() {
   store.settings.last_novel_id = null;
   saveSettings();
   store.library = await api.listNovels();
-  store.activity = "library";
+  store.fullView = "library";
 }
 
 // ---------- 标签页 ----------
 export function openTab(cid) {
   if (!store.openTabs.includes(cid)) store.openTabs.push(cid);
   store.activeTab = cid;
-  store.activity = "chapters";
+  store.fullView = null;
   if (store.settings) {
     store.settings.lastChapter = store.settings.lastChapter || {};
     store.settings.lastChapter[store.novel?.meta?.id] = cid;

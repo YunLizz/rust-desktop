@@ -1,22 +1,68 @@
 <template>
   <div class="app" v-if="store.ready">
-    <TitleBar />
-    <div class="body">
-      <ActivityBar v-if="!store.focusMode" />
-      <SidePanel v-if="!store.focusMode && showSidebar" />
-      <main class="central">
-        <Library v-if="store.activity === 'library'" />
-        <StatsView v-else-if="store.activity === 'stats'" />
-        <SettingsView v-else-if="store.activity === 'settings'" />
-        <DetailViews v-else-if="isDetailActivity" />
-        <EditorView v-else-if="store.novel && store.activeTab" />
-        <div v-else class="empty" style="height:100%">
-          <div class="emoji">📑</div>
-          <div class="title">还没有打开章节</div>
-          <div class="sub">在左侧「章节」面板选择或新建一个章节；没有作品时先到书库新建一部</div>
-        </div>
+    <!-- 顶部 Ribbon（含窗口控制） -->
+    <Ribbon />
+
+    <!-- 全屏视图：书库 / 统计 / 设置 / 关系网 -->
+    <div class="fullview" v-if="store.fullView">
+      <div class="fv-bar">
+        <button class="fv-back" @click="store.fullView = null">← 返回写作台</button>
+        <span class="fv-title">{{ fullViewName }}</span>
+        <span class="fv-sub" v-if="store.novel">《{{ store.novel.meta.title }}》</span>
+      </div>
+      <main class="fv-body">
+        <Library v-if="store.fullView === 'library'" />
+        <StatsView v-else-if="store.fullView === 'stats'" />
+        <SettingsView v-else-if="store.fullView === 'settings'" />
+        <RelationGraph v-else-if="store.fullView === 'graph'" />
       </main>
     </div>
+
+    <!-- 写作台：三栏，均可拖拽 -->
+    <div class="body" v-else-if="store.novel">
+      <template v-if="!store.focusMode">
+        <LeftPane v-if="store.leftOpen" />
+        <DragHandle
+          v-if="store.leftOpen"
+          :get="() => store.leftWidth"
+          :set="(w) => (store.leftWidth = w)"
+          :dir="1"
+          :min="220"
+          :max="560"
+          :fallback="280"
+        />
+      </template>
+
+      <main class="central">
+        <EditorView v-if="store.activeTab" />
+        <div v-else class="empty">
+          <div class="emoji">📑</div>
+          <div class="title">还没有打开章节</div>
+          <div class="sub">在左侧章节树点击一个章节开始写作</div>
+        </div>
+      </main>
+
+      <template v-if="!store.focusMode">
+        <DragHandle
+          v-if="store.rightOpen"
+          :get="() => store.rightWidth"
+          :set="(w) => (store.rightWidth = w)"
+          :dir="-1"
+          :min="280"
+          :max="640"
+          :fallback="340"
+        />
+        <RightPane v-if="store.rightOpen" />
+      </template>
+    </div>
+
+    <!-- 无作品：欢迎页 -->
+    <div class="body" v-else>
+      <main class="central">
+        <Library />
+      </main>
+    </div>
+
     <StatusBar />
     <Palette v-if="store.paletteOpen" />
     <Modal v-if="store.dialog" />
@@ -25,6 +71,7 @@
       {{ store.toast.msg }}
     </div>
   </div>
+
   <div v-else class="splash">
     <div class="splash-logo">📖</div>
     <div class="splash-title">锦书</div>
@@ -34,29 +81,22 @@
 <script setup>
 import { computed } from "vue";
 import { store } from "./store";
-import TitleBar from "./components/TitleBar.vue";
-import ActivityBar from "./components/ActivityBar.vue";
-import SidePanel from "./components/SidePanel.vue";
-import StatusBar from "./components/StatusBar.vue";
+import Ribbon from "./components/Ribbon.vue";
+import LeftPane from "./components/LeftPane.vue";
+import RightPane from "./components/RightPane.vue";
+import DragHandle from "./components/DragHandle.vue";
 import EditorView from "./components/EditorView.vue";
+import StatusBar from "./components/StatusBar.vue";
 import Palette from "./components/Palette.vue";
 import Modal from "./components/Modal.vue";
 import ContextMenu from "./components/ContextMenu.vue";
 import Library from "./views/Library.vue";
 import StatsView from "./views/StatsView.vue";
 import SettingsView from "./views/SettingsView.vue";
-import DetailViews from "./views/DetailViews.vue";
+import RelationGraph from "./views/RelationGraph.vue";
 
-const showSidebar = computed(
-  () =>
-    store.sidebarOpen &&
-    store.novel &&
-    ["chapters", "outline", "characters", "world", "timeline", "tasks", "search"].includes(store.activity)
-);
-const isDetailActivity = computed(
-  () =>
-    store.novel &&
-    ["characters", "world", "timeline", "tasks", "outline"].includes(store.activity)
+const fullViewName = computed(
+  () => ({ library: "书库", stats: "写作统计", settings: "设置", graph: "人物关系网" }[store.fullView] || "")
 );
 </script>
 
@@ -80,6 +120,39 @@ const isDetailActivity = computed(
   background: var(--editor);
   position: relative;
 }
+/* 全屏视图 */
+.fullview {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--editor);
+}
+.fv-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+  flex-shrink: 0;
+}
+.fv-back {
+  border: 1px solid var(--border);
+  background: var(--panel-alt);
+  color: var(--text);
+  font-size: 12px;
+  padding: 4px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.12s, color 0.12s;
+}
+.fv-back:hover { border-color: var(--accent); color: var(--accent); }
+.fv-title { font-size: 14.5px; font-weight: 600; color: var(--text); }
+.fv-sub { font-size: 12px; color: var(--text-3); }
+.fv-body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+
 .splash {
   height: 100%;
   display: flex;

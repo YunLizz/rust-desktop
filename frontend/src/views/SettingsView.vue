@@ -50,6 +50,12 @@
             <span class="row-val">{{ store.settings.editor.line_spacing }}x</span>
           </div>
           <div class="row">
+            <span class="row-label">每行字数</span>
+            <input type="range" min="20" max="60" step="2" v-model.number="store.settings.editor.line_width_chars" @change="persistWidth" />
+            <span class="row-val">{{ store.settings.editor.line_width_chars || 34 }} 字</span>
+            <span class="hint">控制正文列宽（约 30-40 字最佳阅读体验）</span>
+          </div>
+          <div class="row">
             <span class="row-label">自动换行</span>
             <label class="switch"><input type="checkbox" v-model="store.settings.editor.wrap" @change="persist" /><span class="slider"></span></label>
           </div>
@@ -118,6 +124,10 @@ const fontOptions = [
 function persist() {
   saveSettings();
   applyTheme();
+}
+function persistWidth() {
+  saveSettings();
+  window.dispatchEvent(new CustomEvent("jinshu:editor-cmd", { detail: { cmd: "refresh-theme" } }));
 }
 function setTheme(t) {
   store.settings.theme = t;
