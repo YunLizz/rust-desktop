@@ -1,34 +1,26 @@
 <template>
   <div class="editor-wrap">
-    <!-- 标签条 -->
-    <div class="tabbar" v-if="!store.focusMode">
-      <div
-        v-for="cid in store.openTabs"
-        :key="cid"
-        class="tab"
-        :class="{ active: cid === store.activeTab }"
-        @click="activate(cid)"
-        @contextmenu.prevent="openTabMenu($event, cid)"
-      >
-        <span class="tab-title">{{ shortTitle(cid) }}</span>
-        <span class="dot" v-if="store.dirty[cid]"></span>
-        <span class="tab-close" @click.stop="closeTabLocal(cid)">✕</span>
+    <!-- 顶部一行：标签页 + 当前章节标题（合并，省纵向空间） -->
+    <div class="topbar" v-if="!store.focusMode">
+      <div class="tabstrip">
+        <button
+          v-for="cid in store.openTabs"
+          :key="cid"
+          class="tab"
+          :class="{ active: cid === store.activeTab }"
+          @click="activate(cid)"
+          @contextmenu.prevent="openTabMenu($event, cid)"
+        >
+          <span class="tab-title" @dblclick.stop="renameTab(cid)" :title="'双击重命名：' + fullTitle(cid)">{{ shortTitle(cid) }}</span>
+          <span class="dot" v-if="store.dirty[cid]"></span>
+          <span class="tab-close" @click.stop="closeTabLocal(cid)">✕</span>
+        </button>
       </div>
-      <div class="tabbar-grow"></div>
-    </div>
-
-    <!-- 章节头 -->
-    <div class="chapter-head">
-      <input
-        class="ch-title"
-        v-model="chTitle"
-        placeholder="章节标题"
-        @change="saveTitle"
-      />
-      <span class="ch-words">{{ store.wordCount }} 字</span>
-      <div class="ch-actions">
-        <button class="btn sm" title="在当前段落首行插入两个全角空格缩进" @click="indentParagraph">␣ 首行缩进</button>
-        <button class="btn sm" @click="saveNow">💾 保存</button>
+      <div class="topbar-right">
+        <span class="words">{{ store.wordCount }} 字</span>
+        <button class="tb-btn" title="首行缩进（当前段落）" @click="indentParagraph">␣</button>
+        <button class="tb-btn" title="查找替换 (Ctrl+F)" @click="store.findOpen = !store.findOpen">🔍</button>
+        <button class="tb-btn" title="专注写作（隐藏左右栏）" @click="store.focusMode = !store.focusMode">🎯</button>
       </div>
     </div>
 
@@ -47,8 +39,10 @@
       <button class="icon-btn" @click="store.findOpen = false">✕</button>
     </div>
 
-    <!-- CodeMirror -->
-    <div ref="cmHost" class="cm-host"></div>
+    <!-- CodeMirror（正文居中收窄，舒适阅读宽度） -->
+    <div class="cm-outer">
+      <div ref="cmHost" class="cm-host" :style="cmStyle"></div>
+    </div>
   </div>
 </template>
 
@@ -73,6 +67,19 @@ const findR = ref("");
 const findTotal = ref(0);
 const findCur = ref(0);
 let lastQuery = "";
+
+// 正文舒适阅读宽度：屏宽 45% 且不超过 720px（2K 27 寸约 620px，人眼专注区）
+const cmStyle = computed(() => {
+  const e = store.settings.editor || {};
+  const size = e.font_size || 17;
+  const chars = e.line_width_chars || 34;
+  // 按字数换算的理想宽度
+  const ideal = Math.round(chars * size * 1.06);
+  // 按屏宽百分比的上限（45%），再与字数上限取较小值
+  const vwCap = Math.round((typeof window !== "undefined" ? window.innerWidth : 1400) * 0.45);
+  const w = Math.min(720, Math.max(460, Math.min(ideal, vwCap)));
+  return { width: w + "px", flex: "0 0 auto" };
+});
 
 const fontFamily = () => {
   const f = store.settings.editor.font || "serif";
@@ -170,8 +177,18 @@ function activate(cid) {
   switchDoc();
 }
 
+function fullTitle(cid) {
+  return allChapters(store.novel).find((c) => c.id === cid)?.title || "未命名";
+}
+
+function renameTab(cid) {
+  const c = allChapters(store.novel).find((x) => x.id === cid);
+  if (!c) return;
+  store.dialog = { kind: "renameChapter", payload: { cid: c.id } };
+}
+
 function shortTitle(cid) {
-  const t = allChapters(store.novel).find((c) => c.id === cid)?.title || "未命名";
+  const t = fullTitle(cid);
   return t.length > 10 ? t.slice(0, 10) + "…" : t;
 }
 
@@ -306,6 +323,22 @@ function indentParagraph() {
 }
 
 // 外部内容插入（起名机“插入到正文”等）
+// Ribbon / 设置页命令转发
+function onEditorCmd(e) {
+  const cmd = e.detail?.cmd;
+  if (cmd === "indent") {
+    indentParagraph();
+  } else if (cmd === "find") {
+    store.findOpen = true;
+    store.findReplace = true;
+  } else if (cmd === "refresh-theme") {
+    if (view && store.activeTab) {
+      const cur = view.state.doc.toString();
+      view.setState(EditorState.create({ doc: cur, extensions: editorExtensions() }));
+    }
+  }
+}
+
 function onInsert(e) {
   const { cid, content } = e.detail;
   if (cid !== store.activeTab || !view) return;
@@ -340,68 +373,65 @@ onMounted(() => {
     state: EditorState.create({ doc: "", extensions: editorExtensions() }),
   });
   window.addEventListener("jinshu:insert", onInsert);
+  window.addEventListener("jinshu:editor-cmd", onEditorCmd);
   switchDoc();
 });
 
 onBeforeUnmount(() => {
   window.removeEventListener("jinshu:insert", onInsert);
+  window.removeEventListener("jinshu:editor-cmd", onEditorCmd);
   view?.destroy();
 });
 </script>
 
 <style scoped>
 .editor-wrap { flex: 1; display: flex; flex-direction: column; min-height: 0; }
-.tabbar {
+.topbar {
   display: flex;
-  align-items: flex-end;
-  gap: 3px;
-  padding: 6px 8px 0;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
   flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--editor);
+  min-height: 34px;
 }
+.tabstrip { display: flex; gap: 3px; flex: 1; overflow-x: auto; min-width: 0; }
+.topbar-right { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
+.words { font-size: 11.5px; color: var(--text-3); margin-right: 2px; }
+.tb-btn {
+  border: none;
+  background: transparent;
+  color: var(--text-2);
+  font-size: 13px;
+  width: 26px;
+  height: 24px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.tb-btn:hover { background: var(--hover); color: var(--text); }
 .tab {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 5px 8px 5px 12px;
-  border-radius: 7px 7px 0 0;
+  padding: 3px 8px 3px 10px;
+  border-radius: 6px;
   font-size: 12.5px;
   color: var(--text-2);
   cursor: pointer;
-  max-width: 180px;
+  max-width: 170px;
   border: 1px solid transparent;
+  background: transparent;
+  font-family: inherit;
+  flex-shrink: 0;
 }
 .tab:hover { background: var(--hover); color: var(--text); }
-.tab.active { background: var(--panel); color: var(--text); border-color: var(--border); border-bottom-color: var(--panel); }
+.tab.active { background: var(--panel-alt); color: var(--text); border-color: var(--border); }
 .tab-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tab .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--warn); flex-shrink: 0; }
 .tab-close { font-size: 10px; color: var(--text-3); border-radius: 4px; padding: 1px 3px; }
 .tab-close:hover { background: var(--hover); color: var(--text); }
-.tabbar-grow { flex: 1; border-bottom: 1px solid var(--border); }
-
-.chapter-head {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 7px 14px;
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
-}
-.ch-title {
-  border: none;
-  background: var(--panel-alt);
-  color: var(--text);
-  font-size: 15px;
-  font-weight: 600;
-  padding: 5px 12px;
-  border-radius: 6px;
-  width: 360px;
-  outline: none;
-  font-family: inherit;
-}
-.ch-title:focus { box-shadow: 0 0 0 1px var(--accent); }
-.ch-words { font-size: 12px; color: var(--text-2); }
-.ch-actions { margin-left: auto; display: flex; gap: 6px; }
-
 .findbar {
   display: flex;
   align-items: center;
@@ -414,5 +444,21 @@ onBeforeUnmount(() => {
 .find-input { width: 200px; padding: 4px 9px; font-size: 12px; }
 .find-count { font-size: 12px; color: var(--text-2); min-width: 44px; }
 .find-count.none { color: var(--danger); }
-.cm-host { flex: 1; min-height: 0; overflow: hidden; }
+.cm-outer {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  background: var(--editor);
+}
+/* 正文列：固定舒适宽度并居中（像 Word 的页面） */
+.cm-host {
+  min-height: 0;
+  overflow: hidden;
+  background: var(--editor);
+  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  box-shadow: 0 0 24px rgba(0, 0, 0, 0.18);
+}
 </style>

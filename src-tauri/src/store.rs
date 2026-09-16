@@ -52,6 +52,13 @@ pub struct EditorSettings {
     /// 中文排版：两端对齐（Word 式）
     #[serde(default = "default_true")]
     pub justify: bool,
+    /// 正文每行目标字数（控制列宽，默认 34 字）
+    #[serde(default = "default_line_width")]
+    pub line_width_chars: u32,
+}
+
+fn default_line_width() -> u32 {
+    34
 }
 
 fn default_true() -> bool {
@@ -69,6 +76,7 @@ impl Default for EditorSettings {
             auto_indent: false,
             show_line_numbers: true,
             justify: true,
+            line_width_chars: 34,
         }
     }
 }
