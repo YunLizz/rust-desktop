@@ -5,7 +5,7 @@
 pkgname=jinshu-rust
 pkgver=0.1.0
 pkgrel=1
-pkgdesc="锦书 —— 为中文小说创作而生的本地编辑器（Tauri + Vue 3）：章节树/大纲/人物关系网/世界观/时间线/任务看板/写作统计，AI 创作助手，数据 AES-256-GCM 加密存储于安装目录"
+pkgdesc="锦书 —— 为中文小说创作而生的本地编辑器（Tauri + Vue 3）：章节树/大纲/人物关系网/世界观/时间线/任务看板/写作统计，数据 AES-256-GCM 加密存储于安装目录"
 arch=('x86_64')
 url="https://github.com/example/jinshu-rust"
 license=('MIT')

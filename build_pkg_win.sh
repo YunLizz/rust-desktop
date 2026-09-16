@@ -31,12 +31,14 @@ cat > "$PKG/启动说明.txt" <<'EOF'
 · 磁盘上不存在任何明文文件（已自动化测试验证）。
 
 AI 功能：
-· 设置 → AI 服务：填写任意 OpenAI 兼容 / Anthropic 兼容服务的 API Key。
-· API Key 加密存储，仅在你调用时发送给你配置的服务商。
+· 本版本不含 AI 功能，应用完全离线运行。
 
 快捷键：
-Ctrl+N 新建小说   Ctrl+O 书库   Ctrl+S 保存   Ctrl+P 命令面板
-Ctrl+F 查找       Ctrl+B 侧栏   Ctrl+J AI 面板  Ctrl+=/Ctrl+- 字号
+Ctrl+N 新建小说   Ctrl+S 保存全部   Ctrl+P 命令面板
+Ctrl+F 查找       Ctrl+H 替换       Ctrl+B 侧栏   Ctrl+=/Ctrl+- 字号
+
+导出：
+· 支持导出 TXT / Markdown 两种格式。
 EOF
 
 echo "==> 压缩 zip"

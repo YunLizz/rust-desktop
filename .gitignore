@@ -1,5 +1,4 @@
 # Rust build output
-/target
 **/target
 
 # Frontend dependencies

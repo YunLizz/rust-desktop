@@ -34,7 +34,8 @@
 
 ## 🚧 当前状态说明
 
-- **不含 AI 功能**：因市场需求调整，AI 创作助手已从前端完全下线（入口、面板、设置项、快捷键均已移除），待重新设计后再上线。应用当前为**纯离线**写作工具，除软件更新外不产生任何网络请求。
+- **单引擎**：项目只保留 Tauri 版（Rust 后端 + Vue 3 前端）。早期并存的 egui 原生版已于 2026-09 移除，仓库中不再有根 `src/`、根 `Cargo.toml` 与 `assets/`。
+- **不含 AI 功能**：因市场需求调整，AI 创作助手已从前端完全下线（入口、面板、设置项、快捷键均已移除），待重新设计后再上线。应用当前为**纯离线**写作工具，不产生任何网络请求。
 - **不含 `.jsb` 加密备份**：`.jsb` 导入导出已移除，导出仅提供 txt / md。加密能力保留在**本地落盘**这一层（AES-256-GCM，`.jsr` 格式）。
 
 ## 🚀 快速开始
@@ -47,22 +48,14 @@
 
 ### Arch Linux
 
-**方式一：AUR 风格打包（推荐）**
+**AUR 风格打包**
 
 ```bash
 cd packaging/arch
-makepkg -si        # 安装到系统
+makepkg -si        # 构建并安装到系统
 ```
 
 > 注意：系统级安装时 `/opt/jinshu-rust` 默认不可写，请在启动前设置 `JINSHU_DATA_DIR=~/jinshu-data`（或 `sudo chown -R $USER /opt/jinshu-rust`，数据即可直接落在安装目录）。
-
-**方式二：便携版**
-
-```bash
-bash build_pkg_arch.sh   # 在项目根目录（需要 Rust 工具链）
-# 产物: dist/JinShu-rust-arch-x86_64.tar.gz —— 解压到 ~/Apps 直接运行
-./JinShu
-```
 
 依赖：`webkit2gtk-4.1 gtk3 noto-fonts-cjk`（PKGBUILD 已声明）；中文字体来自系统 noto-fonts-cjk。
 
@@ -95,11 +88,7 @@ cd src-tauri && cargo build --release
 ## 🧪 测试
 
 ```bash
-# Tauri 主推版（推荐）
 cd src-tauri && cargo test    # 加密往返 / 加密落盘 / 字数统计 / 章节业务 / 导出格式 / 大纲解析，共 6 项
-
-# egui 原生版（根 crate，仍保留 .jsb 与 AI 逻辑）
-cargo test                    # 上述 6 项 + jsb 密码备份往返，共 7 项
 ```
 
 ## 🏗 技术栈
