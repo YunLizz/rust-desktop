@@ -19,6 +19,11 @@
 | 平台 | Windows 11 / Arch Linux 双平台 |
 | 许可 | MIT |
 
+### 仓库访问方式
+- **本机已配置 git 凭据管理器**（`git config --get credential.helper` → `manager`），`git fetch` / `git push` **免密可用**，无需在项目文件里保存任何密码或 token。
+- 新会话如需推送：直接 `git add` → `git commit` → `git push` 即可。
+- ⚠️ **切勿把账号、密码、Personal Access Token 写入本项目任何文件**。凭据应只存在于系统凭据管理器（Windows Credential Manager）中。若确需在脚本里用 token，请用环境变量注入，不要落盘。
+
 ### 与用户的关系
 用户是产品负责人，会亲自测试并给反馈。**用户对 UI/UX 有明确且强烈的设计主张**（见第四节），改动前应确认方向，不要自作主张改设计。
 
