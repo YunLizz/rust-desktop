@@ -4,7 +4,7 @@
 
 > **文档对应代码版本**：仓库 HEAD（Tauri 单引擎，2026-09-16）。
 >
-> **最后同步：2026-09-16（移除 egui 原生版，项目转为 Tauri 单引擎）**
+> **最后同步：2026-09-16（前端重构后同步：Ribbon + 左栏 5 树 + 右栏创意工具格）**
 
 > **单引擎说明**：本项目现仅有 **Tauri 版**一套实现（`src-tauri/` 后端 + `frontend/` 前端，官方推荐发布版）。原「egui 原生版」（根 `src/` 目录、根 `Cargo.toml`、`assets/` 资源、`build_pkg_arch.sh`）已于 2026-09 移除，相关代码与资源均已不存在。
 >
@@ -45,13 +45,14 @@
 
 | 能力 | 实现方式 |
 |------|----------|
+| 界面布局 | Ribbon（写作/设定/工具/视图 4 选项卡）+ 左栏 5 树 + 中央正文 + 右栏创意工具格 |
 | 章节 / 分卷管理 | 卷→章 树形结构，多标签页，拖拽排序 |
 | 写作编辑器 | CodeMirror 6 |
 | 大纲系统 | 卷→章→节→要点 四级树形大纲 |
 | 人物设定 | 人物卡 + 关系网画布（可拖拽） |
 | 世界观 | 地点层级树（国家→城市→建筑） |
 | 时间线 | 事件排序 + 关联章节/人物/地点 |
-| 任务看板 | 任务链 + 三列看板（待办/进行中/已完成） |
+| 任务线 | 任务链 + 三列看板（未开始/进行中/已完成），归属角色、关联章节、明暗线 |
 | 写作统计 | 总字数 / 今日 / 连续天数 / 30天趋势 |
 | AI 创作助手 | 前端已全部下线（面板/入口/设置项均已移除）；后端代码保留待重新设计 |
 | Lorebook 注入 | 随 AI 前端一并下线，无前端入口（后端提示词模板中仍保留匹配逻辑） |
@@ -135,29 +136,31 @@
 
 ```
 JinShu-rust/
-├── frontend/                   # Vue 3 前端（Vite 构建）
+├── frontend/                   # Vue 3 前端（Vite 构建，src/ 共 21 个源文件）
 │   ├── src/
-│   │   ├── components/         #   UI 组件
-│   │   │   ├── TitleBar.vue        #   自定义标题栏 + 窗口控制
-│   │   │   ├── ActivityBar.vue     #   左侧图标活动栏（10 个入口）
-│   │   │   ├── SidePanel.vue       #   侧边面板（章节/大纲/人物…）
-│   │   │   ├── EditorView.vue      #   CodeMirror 6 编辑器视图
-│   │   │   ├── Palette.vue         #   Ctrl+P 命令面板（13 条命令）
-│   │   │   ├── Modal.vue           #   对话框（新建/导出/删除/起名机…）
-│   │   │   ├── ContextMenu.vue     #   右键菜单
+│   │   ├── components/         #   UI 组件（11 个）
+│   │   │   ├── Ribbon.vue          #   顶部两行：选项卡 + 窗口控制 + 当前组按钮 + 时间轴折叠钮
+│   │   │   ├── LeftPane.vue        #   左栏：5 个 Tab 树 + 过滤 + 右键菜单
+│   │   │   ├── RightPane.vue       #   右栏：创意工具格 + 5 个内嵌工具面板
+│   │   │   ├── TimelineTrack.vue   #   顶栏剪辑式横向时间轴（可折叠、分轨、拖拽、Ctrl+滚轮缩放）
+│   │   │   ├── DragHandle.vue      #   通用可拖拽分隔条（双击复位、宽度落盘）
+│   │   │   ├── EditorView.vue      #   中央编辑器：标签页 + 查找替换条 + CodeMirror 正文
 │   │   │   ├── StatusBar.vue       #   底部状态栏
-│   │   │   └── Icon.vue            #   图标组件
-│   │   ├── views/              #   全屏活动视图
-│   │   │   ├── Library.vue         #   书库列表 + 欢迎页
+│   │   │   ├── Palette.vue         #   命令面板（13 条命令）
+│   │   │   ├── Modal.vue           #   通用弹窗（8 种 kind）
+│   │   │   ├── ContextMenu.vue     #   自定义右键菜单（jinshu:contextmenu 事件）
+│   │   │   └── Icon.vue            #   SVG 图标组件
+│   │   ├── views/              #   全屏视图（store.fullView）
+│   │   │   ├── Library.vue         #   书库列表 + 空书库欢迎页
 │   │   │   ├── StatsView.vue       #   写作统计
 │   │   │   ├── SettingsView.vue    #   设置页（外观 / 编辑 / 存储与安全）
-│   │   │   └── DetailViews.vue     #   人物/地点/时间线/任务/大纲详情
+│   │   │   └── RelationGraph.vue   #   全屏人物关系网画布
 │   │   ├── store.js            #   全局响应式状态 + 业务动作
 │   │   ├── api.js              #   Tauri invoke 命令封装（12 个）
 │   │   ├── names.js            #   本地起名机（纯算法字库，不依赖网络）
-│   │   ├── App.vue             #   根组件：布局装配
-│   │   ├── main.js             #   Vue 入口 + 主题初始化 + 全局快捷键
-│   │   └── styles/theme.css    #   CSS 变量主题系统（深浅色+8种强调色）
+│   │   ├── App.vue             #   根组件：Ribbon + 全屏视图 + 写作台三栏 + StatusBar + 浮层
+│   │   ├── main.js             #   入口：initInfo/恢复上次作品、全局 keydown 快捷键、挂载
+│   │   └── styles/theme.css    #   CSS 变量主题系统（深浅色 + 8 种强调色）
 │   ├── index.html
 │   ├── package.json            #   Vue 3.5 + Vite 6 + CodeMirror 6
 │   └── vite.config.js
@@ -190,6 +193,8 @@ JinShu-rust/
 └── README.md
 ```
 
+> **已删除的旧前端组件**（前端重构 `ab73b5d` + `37a403b`「按人眼专注区重新设计」后已不存在）：`components/ActivityBar.vue`、`components/SidePanel.vue`、`components/TitleBar.vue`、`views/DetailViews.vue`。旧导航字段 `store.activity` 同步废弃（其职责由 `ribbonTab` / `leftTree` / `rightTool` / `fullView` 分担）。
+
 ---
 
 ## 4. 数据模型层 (Model)
@@ -215,6 +220,8 @@ Novel (小说根对象)
 ```
 
 ### 4.2 结构体详解
+
+> 全部 **11 个结构体**均标注了 `#[serde(default)]`（`NovelMeta` / `ChapterMeta` / `Volume` / `OutlineNode` / `Relationship` / `Character` / `Location` / `TimelineEvent` / `Task` / `TaskChain` / `Novel`），字段缺失时回退默认值，避免旧数据因缺字段而保存失败。
 
 #### NovelMeta — 小说元信息
 
@@ -274,13 +281,23 @@ pub struct TimelineEvent {
     pub character_ids: Vec<String>,       // 关联人物
     pub location_id: Option<String>,      // 关联地点
     pub chapter_id: Option<String>,       // 关联章节
+    pub order: i32,                       // 剪辑式轨道的横向排序位置（拖动调整）
+    pub kind: String,                     // 事件类型：主线 / 支线 / 暗线 / 回忆（决定轨道颜色，默认「主线」）
 }
 ```
 
-#### Task / TaskChain — 任务看板
+#### Task / TaskChain — 任务线
 
-- Task.status: 0=待办, 1=进行中, 2=已完成
-- Task.chain_id 关联 TaskChain；未关联的归入 "无分组"
+Task 字段（`src-tauri/src/model.rs`）：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `status` | u8 | **0 未开始 / 1 进行中 / 2 已完成** |
+| `chain_id` | Option<String> | 关联 TaskChain；未关联的归入 "无分组" |
+| `character_id` | Option<String> | 归属角色（「角色的任务」，不是作者的待办） |
+| `chapter_id` | Option<String> | 关联章节（任务在哪一章推进/完成） |
+| `is_public` | bool | 默认 true；**false = 暗线/伏笔**（读者尚未知晓） |
+| `order` | i32 | 在任务线列表中的排序 |
 
 ### 4.3 Novel 关键业务方法
 
@@ -386,27 +403,31 @@ AppSettings
 ├── autosave_secs: u64           # 自动保存间隔（默认5秒）
 ├── last_novel_id: Option<String># 下次启动自动打开
 ├── sidebar_width, ai_panel_width: f32
-├── nav_expanded: Option<bool>   # 导航栏收起/展开
+├── nav_expanded: Option<bool>   # 保留字段（默认 Some(true)），前端已无入口
 ├── recent: Vec<RecentNovel>     # 最近打开（最多8项）
 ├── editor: EditorSettings
 │   ├── font: "serif" | "sans"
 │   ├── font_size: f32           # 默认 17
 │   ├── line_spacing: f32        # 默认 1.9
-│   ├── wrap: bool
+│   ├── wrap: bool               # 默认 true
 │   ├── markdown_highlight: bool # 中文写作默认关闭
 │   ├── auto_indent: bool        # 首段自动两字缩进
-│   └── show_line_numbers: bool
+│   ├── show_line_numbers: bool  # 默认 true
+│   ├── justify: bool            # 两端对齐（中文排版，默认 true）
+│   └── line_width_chars: u32    # 正文每行目标字数（控制列宽，默认 34）
 └── ai: AiSettings              # 字段保留用于兼容既有 settings.jsr；前端已无任何入口
     ├── protocol: "openai" | "anthropic"
     ├── base_url
     ├── api_key                 # 加密存储
-    ├── model                   # 如 deepseek-chat / claude-sonnet-4-5
+    ├── model                   # 默认 gpt-4o-mini
     ├── temperature             # 默认 0.8
     ├── max_tokens              # 默认 4096
     ├── system_prompt           # 默认：资深中文小说创作助手…
     ├── timeout_secs            # 默认 180
     └── inject_lore: bool       # 自动 Lorebook 注入开关
 ```
+
+> `AppSettings.ai`（`AiSettings`）与 `AppSettings.nav_expanded` 均**保留未删**，用于兼容既有 `settings.jsr`，但前端已无任何入口/消费方。
 
 ---
 
@@ -564,61 +585,130 @@ pub struct AppData {
 
 ### 8.2 响应式状态 (store.js)
 
-全局响应式状态（**不含任何 AI 状态**，AI 字段已于 `7d8e980` 移除）：
+全局响应式状态（无 Pinia，单一 `reactive()` 单例）：
+
 ```js
 store = reactive({
   ready, dataDir, keyFp, settings,
-  library, novel, chapters,    // chapters = {cid: text}
+  library, novel, chapters,          // chapters = {cid: text}
   dirty, openTabs, activeTab,
-  activity, sidebarOpen, focusMode,
+
+  // ======== 布局 / 导航模型 ========
+  ribbonTab,   // "writing" | "lore" | "tools" | "view"   Ribbon 4 个选项卡
+  leftTree,    // "chapters" | "outline" | "characters" | "world" | "tasks"  左栏 5 棵树
+  rightTool,   // null(工具格) | "namer" | "map" | "graph" | "timeline" | "tasks"
+  timelineOpen,// 布尔：顶栏横向时间轴展开/收起（默认 false）
+  mapPos,      // {locId: {x, y}} 地图节点位置
+  fullView,    // null | "library" | "stats" | "settings" | "graph"  全屏视图
+  leftWidth, rightWidth,   // 默认 300 / 400，可拖拽
+  leftOpen, rightOpen,     // 左/右栏显示开关
+  aiPanelOpen,             // ⚠️ 死字段：无消费方
+  focusMode,
+
   paletteOpen, paletteQuery, findOpen, findReplace,
-  selChar, selLoc, selEvent, selOutline, selChain, showRelCanvas, canvasPos,
-  dialog, toast, toastOk, selectedText, cursorPos, wordCount, saveTimer, lastAutosave
+
+  selChar, selLoc, selEvent, selOutline, selChain, selTask, showRelCanvas, canvasPos,
+  // ⚠️ selChain 固定为 "all"（任务链过滤实际用 LeftPane.vue 内局部状态）；
+  //    showRelCanvas 无消费方
+
+  dialog, toast, toastOk,      // ⚠️ toastOk 无消费方
+
+  selectedText, cursorPos, wordCount, saveTimer, lastAutosave,
 })
 ```
 
+> 旧的 `store.activity`（活动栏导航）已随前端重构删除，导航改由 `ribbonTab` / `leftTree` / `rightTool` / `fullView` 四个字段共同表达。
+
 ### 8.3 业务动作 (store.js)
+
+模块导出（`export`）共 **18 项**：
 
 | 函数 | 作用 |
 |------|------|
-| `openNovel(id)` | invoke load_novel → 填充 chapters → 恢复上次打开的章节（`settings.lastChapter[id]`），否则打开第一章 |
-| `createNovel(form)` | invoke create_novel → 刷新书库 → 自动打开 |
-| `closeNovel()` | saveAll + 回退书库 |
-| `openTab / closeTab` | 标签页管理 + 保存设置 |
-| `markDirty(cid)` | 置脏 + `scheduleSave()` |
-| `scheduleSave()` | 2 秒 debounce → saveAll |
-| `saveChapterNow(cid)` | invoke save_chapter → 同步字数/stats/total |
-| `saveAll()` | 遍历 dirty → 批量保存 + saveNovel |
-| `saveSettings()` | invoke save_settings |
-| `applyTheme()` | 设置 documentElement data-theme + CSS 变量（accent/ok/danger） |
-| `countWords(s)` | 中文字符 + 英文单词 双语种统计（JS 版镜像 util::count_words） |
-| `today() / toast() / allChapters() / chapterTitle() / truncate()` | 辅助函数 |
+| `store` | 全局响应式状态单例 |
+| `toast(msg, ok = true)` | 显示 3 秒浮层提示 |
+| `today()` | 返回本地日期 `YYYY-MM-DD` |
+| `openNovel(id)` | invoke `load_novel` → 填充 `chapters` → 更新最近打开 → 恢复上次章节（`settings.lastChapter[id]`），否则打开第一章；同时清空 `fullView` |
+| `createNovel(form)` | invoke `create_novel` → 刷新书库 → 自动 `openNovel` |
+| `closeNovel()` | `saveAll()` → 清空当前作品 → 回书库（`fullView = "library"`） |
+| `openTab(cid)` | 标签页去重 + 置为活动页 + 记录 `settings.lastChapter` |
+| `closeTab(cid)` | 先 `saveChapterNow(cid)` 落盘，再移除标签页与内存正文 |
+| `markDirty(cid)` | 置脏 + 更新 `novel.meta.updated_at` + `scheduleSave()` |
+| `scheduleSave()` | 2 秒 debounce → `saveAll()` |
+| `saveChapterNow(cid)` | invoke `save_chapter` → 同步 `words` / `stats` / `total_words` |
+| `saveAll()` | 遍历 dirty → 逐章保存 + invoke `save_novel` |
+| `saveSettings()` | invoke `save_settings` |
+| `applyTheme()` | 设置 `documentElement[data-theme]` + `--accent*` CSS 变量（由 rgb 计算 rgba 变体） |
+| `allChapters(novel)` | 扁平化所有卷的章节 |
+| `chapterTitle(cid)` | 按 cid 取标题，缺失回退「未命名」 |
+| `countWords(s)` | 中文字符 + 英文单词 双语种统计（JS 版镜像 `util::count_words`） |
+| `truncate(s, n)` | 超长截断加省略号 |
 
-> `startAi()` / `aiInsertToEditor()` / `aiCancel()` 已随 AI 下线删除；`jinshu:insert` 事件现仅由编辑器插入正文与起名机结果使用。
+> 模块内私有函数 `touchRecent(id, title)`（写 `settings.recent` / `last_novel_id`）不导出。
+>
+> `startAi()` / `aiInsertToEditor()` / `aiCancel()` 已随 AI 下线删除。
 
 ### 8.4 组件装配 (App.vue)
 
-```
-<App>
-  ├─ TitleBar            自定义标题栏 + 窗口控制 + 拖窗
-  ├─ body (flex row)
-  │   ├─ ActivityBar     10 个活动图标按钮（非专注模式）
-  │   ├─ SidePanel       侧栏内容（chapters/outline/characters/world/timeline/tasks/search）
-  │   ├─ <main> central
-  │   │   ├─ Library        activity=library
-  │   │   ├─ StatsView      activity=stats
-  │   │   ├─ SettingsView   activity=settings
-  │   │   ├─ DetailViews    characters/world/timeline/tasks/outline 详情+画布
-  │   │   ├─ EditorView     CodeMirror 6 编辑器（有 activeTab 时）
-  │   │   └─ Empty 提示     无章节时
-  ├─ StatusBar           🔒加密存储 | 书名 | 字数 | 今日+N | 光标行列 | 密钥指纹
-  ├─ Palette (条件)
-  ├─ Modal (条件)
-  ├─ ContextMenu
-  └─ toast (fixed)
+```text
+<App>                               根节点
+  ├─ Ribbon                         顶部两行（选项卡 + 窗口控制 + 当前组按钮 + 时间轴折叠钮）
+  ├─ 全屏视图 (store.fullView)
+  │    ├─ .fv-bar                   「← 返回写作台」+ 视图名 + 《书名》
+  │    └─ .fv-body
+  │         ├─ Library              fullView = "library"
+  │         ├─ StatsView            fullView = "stats"
+  │         ├─ SettingsView         fullView = "settings"
+  │         └─ RelationGraph        fullView = "graph"
+  ├─ 写作台 (store.novel 存在且 fullView 为 null)
+  │    ├─ TimelineTrack             v-if="!focusMode"（顶栏剪辑式横向时间轴）
+  │    └─ .body (flex 横排)
+  │         ├─ LeftPane             v-if="leftOpen && !focusMode"
+  │         ├─ DragHandle           左分隔条（min 220 / max 560 / fallback 300）
+  │         ├─ main.central
+  │         │    ├─ EditorView      v-if="activeTab"
+  │         │    └─ Empty 空态       「还没有打开章节」
+  │         ├─ DragHandle           右分隔条（min 280 / max 640 / fallback 400）
+  │         └─ RightPane            v-if="rightOpen && !focusMode"
+  ├─ 无作品分支                      无 novel 时只渲染 <Library />（空书库欢迎页）
+  ├─ StatusBar                      底部状态栏
+  ├─ Palette                        v-if="paletteOpen"
+  ├─ Modal                          v-if="dialog"
+  ├─ ContextMenu                    常驻监听 jinshu:contextmenu
+  └─ toast                          v-if="toast"
 ```
 
-> 右侧 **AIPanel 面板已删除**，布局现为「活动栏 + 侧栏 + 中央区」三段式。
+> 左右栏宽度由 `DragHandle.vue` 统一管理：拖动改宽度、**双击复位**、`saveSettings()` 落盘。
+> 专注模式下 `TimelineTrack` / `LeftPane` / `RightPane` 一并隐藏，只留中央正文。
+
+#### 左栏 5 棵树 (LeftPane.vue)
+
+| Tab id | 名称 | 结构 |
+|--------|------|------|
+| `chapters` | 章节 | 卷 / 章 两级 |
+| `outline` | 大纲 | 卷 / 章 / 节 / 要点 递归 |
+| `characters` | 人物 | 按 `role` 分组，标「本」= 本章正文出现 |
+| `world` | 世界 | 按 `kind` 分组，支持嵌套 |
+| `tasks` | 任务线 | 按角色分组 + 任务链过滤，状态 ○/◐/●，标「暗」= 暗线 |
+
+#### 右栏 5 个工具 (RightPane.vue)
+
+均为**右栏内嵌面板**（非弹窗），由 `store.rightTool` 切换：
+
+| tool id | 名称 | 内容 |
+|---------|------|------|
+| `namer` | 起名机 | 类型/风格/性别/数量 + 生成列表，可复制 / 插入正文 |
+| `map` | 地图 | SVG 可拖拽地点节点画布 + 就地编辑 |
+| `graph` | 关系网 | 人物关系画布 + 重置布局 |
+| `timeline` | 时间轴 | 事件列表就地编辑 |
+| `tasks` | 任务线 | 三列看板，卡片拖拽换列，归属角色 / 关联章节 / 明暗线 |
+
+`rightTool` 为 `null` 时显示工具格（上述 5 个工具的入口卡片）。
+
+#### StatusBar
+
+- 左：`🔒 加密存储` ｜ 书名 ｜ `总字数 N` ｜ `今日 +N` ｜ `本章 N` ｜ `行 X · 列 Y`
+- 右：`UTF-8` ｜ `🔑 密钥指纹` ｜ `📂 打开数据目录`按钮
 
 ### 8.5 主题系统 (styles/theme.css)
 
@@ -638,7 +728,8 @@ CSS 变量双主题 + 运行时强调色注入：
 ### 8.6 CodeMirror 6 编辑器 (components/EditorView.vue)
 
 核心特性：
-- 初始化时安装 editorSettings 对应扩展（字体/行高/换行/行号/搜索/Markdown高亮）
+- 初始化时安装 editorSettings 对应扩展（字体/行高/换行/行号/两端对齐/每行字数/搜索/Markdown高亮）
+- `Prec.highest` keymap：`Mod-f` 打开查找、`Mod-h` 打开查找替换，另挂载 `defaultKeymap` / `historyKeymap` / `indentWithTab`
 - `view.dispatch({ changes: { insert } })` 响应 `jinshu:insert` 自定义事件
 - `updateListener` 双向同步：Vue store.chapters[cid] ⇄ CM6 文档
 - 选区变化 → `store.selectedText`
@@ -791,16 +882,21 @@ tauri build 编译 Rust 后端
          │
          ▼
    Vue main.js
-      ├─ api.initInfo() → {data_dir, key_fp, settings}
-      ├─ store.settings = 结果
-      ├─ applyTheme() → 设置 CSS 变量
-      ├─ api.listNovels() → store.library
-      ├─ 注册全局快捷键（Ctrl+S/P/B/N/=/- 、Esc）
-      └─ createApp(App).mount()
+      ├─ watch(settings.theme / accent / ui_scale) → applyTheme()
+      ├─ window keydown 监听（全局快捷键，见 §16）
+      ├─ init()：
+      │    ├─ api.initInfo() → {data_dir, key_fp, settings}
+      │    ├─ store.dataDir / keyFp / settings = 结果
+      │    ├─ api.listNovels() → store.library
+      │    ├─ applyTheme() → 设置 CSS 变量
+      │    ├─ store.ready = true
+      │    └─ settings.last_novel_id 存在 → openNovel(id)（失败则回退刷新书库）
+      └─ createApp(App).mount("#app")
             │
             ▼
-         App.vue ready → 渲染
-            └─ settings.last_novel_id → 自动 openNovel(id)
+         App.vue（ready 后渲染）
+            ├─ fullView 为空 → 写作台（Ribbon + TimelineTrack + 三栏 + StatusBar）
+            └─ 无作品 → 只渲染 Library 欢迎页
 ```
 
 ---
@@ -897,30 +993,58 @@ cd src-tauri && cargo test
 
 ### 16.1 命令面板 (Ctrl+P)
 
-`components/Palette.vue` 中实现模糊匹配 `fuzzyMatch()`（按字符顺序包含，不要求连续）+ 键盘方向键选择 + Enter 执行，共 **13 条命令**：新建小说 / 打开书库 / 保存全部 / 导出作品 / 新建章节 / 新建分卷 / 本地起名机 / 切换侧边栏 / 切换主题 / 查找 / 写作统计 / 打开设置 / 关于锦书。
+`components/Palette.vue` 中实现模糊匹配（按标签子串包含）+ 键盘方向键选择 + Enter 执行，共 **13 条命令**：
 
-> 前端无任何 AI 命令（命令面板 AI 条目已随 AI 下线移除）。
+| # | 命令 | 展示快捷键 | 实际动作 |
+|---|------|-----------|----------|
+| 1 | 新建小说 | Ctrl+N | 打开 `dialog = {kind:"newNovel"}` |
+| 2 | 打开书库 | Ctrl+O | `fullView = "library"` + 刷新书库 |
+| 3 | 保存全部 | Ctrl+S | `saveAll()` + toast |
+| 4 | 导出作品 | — | 打开导出弹窗（无作品时提示） |
+| 5 | 新建章节 | — | 打开新建章节弹窗 |
+| 6 | 新建分卷 | — | 打开新建分卷弹窗 |
+| 7 | 本地起名机（人物/书名/地名） | — | 打开起名机弹窗 |
+| 8 | 切换左栏 | Ctrl+B | `leftOpen = !leftOpen` |
+| 9 | 切换深色/浅色主题 | — | 切换 `settings.theme` 并落盘 |
+| 10 | 查找 | Ctrl+F | `findOpen = true` |
+| 11 | 写作统计 | — | `fullView = "stats"` |
+| 12 | 打开设置 | — | `fullView = "settings"` |
+| 13 | 关于锦书 | — | 打开关于弹窗 |
 
-### 16.2 命令与快捷键映射表
+> 前端的命令面板**无任何 AI 命令**（AI 条目已随 AI 下线移除）。
+>
+> ⚠️ 表中「展示快捷键」列是面板里渲染的提示文字，**不保证等于真实绑定**：`Ctrl+O` 无任何绑定，`Ctrl+F` 在全局也无绑定（真正的查找键是编辑器内的 `Mod-f`）。
 
-| 命令 | 快捷键 | 入口 |
-|------|--------|------|
-| 新建小说 | Ctrl+N | 欢迎页卡片 / 命令面板 |
-| 保存全部 | Ctrl+S | 书库页按钮 / 命令面板 |
-| 命令面板 | Ctrl+P | 屏幕中央悬浮搜索 |
-| 查找 | Ctrl+F | 章节内查找条 |
-| 查找替换 | Ctrl+H | 查找条展开替换行 |
-| 切换侧边栏 | Ctrl+B | 命令面板 |
-| 增大 / 减小字号 | Ctrl+= / Ctrl+- | — |
-| 关闭标签页 | — | 标签右键菜单 |
-| 打开书库 | — | 左侧活动栏「书库」/ 命令面板 |
-| 全局搜索 | — | 左侧活动栏「搜索」 |
-| 新建章节 / 新建分卷 | — | 侧栏面板 ➕ / 命令面板 |
-| 导出作品 | — | 命令面板 / 对话框（仅 txt / md） |
-| 写作统计 / 设置 / 关于 | — | 左侧活动栏 / 命令面板 |
-| 本地起名机 | — | 命令面板 / 对话框 |
+### 16.2 命令与快捷键映射表（真实绑定）
 
-> `Esc` 用于关闭命令面板 / 查找条 / 弹窗。`Ctrl+O`、`Ctrl+Shift+F`、`Ctrl+W`、`Ctrl+J` 均**无按键绑定**。
+| 快捷键 | 作用 | 绑定位置 | 备注 |
+|--------|------|----------|------|
+| `Ctrl+S` | 保存全部 | `main.js` 全局 keydown | 无条件生效 |
+| `Ctrl+P` | 切换命令面板 | `main.js` 全局 keydown | **焦点不在编辑器内**才生效 |
+| `Ctrl+B` | 切换左栏显示/隐藏 | `main.js` 全局 keydown | 编辑器内同样生效 |
+| `Ctrl+=` | 正文字号 +1（上限 32） | `main.js` 全局 keydown | ⚠️ 未调用 `saveSettings()`，不落盘 |
+| `Ctrl+-` | 正文字号 −1（下限 10） | `main.js` 全局 keydown | ⚠️ 未调用 `saveSettings()`，不落盘 |
+| `Ctrl+N` | 新建小说（打开弹窗） | `main.js` 全局 keydown | **焦点不在编辑器内**才生效 |
+| `Esc` | 关闭命令面板 / 查找条 / 弹窗 | `main.js` 全局 keydown | — |
+| `Mod-f` | 查找 | CodeMirror keymap（`Prec.highest`） | 仅编辑器内 |
+| `Mod-h` | 查找替换 | CodeMirror keymap（`Prec.highest`） | 仅编辑器内 |
+| `Ctrl+滚轮` | 横向时间轴轨道缩放 | `TimelineTrack.vue` | 仅时间轴区域内 |
+
+> 编辑器内另挂载 `defaultKeymap`（撤销/重做/光标移动等标准编辑键）、`historyKeymap`、`indentWithTab`。
+>
+> **无按键绑定的键**：`Ctrl+O`（仅作为命令面板展示标签存在，与实际不符）、`Ctrl+Shift+F`、`Ctrl+W`、`Ctrl+J`。
+> 其余功能（新建章节/分卷、导出、写作统计、设置、关于、起名机、关系网、地图、任务线等）均**无快捷键**，只能经 Ribbon 按钮、左/右栏或命令面板触发。
+
+### 16.3 Ribbon 4 组按钮
+
+`components/Ribbon.vue` 顶部第一行为选项卡（`writing | lore | tools | view`），第二行为窗口控制、当前组按钮与时间轴折叠钮。
+
+| 组 | 按钮 |
+|----|------|
+| **写作** (`writing`) | 章节（新建/新建卷/重命名/删除）、排版（首行缩进/两端对齐/增大字号/减小字号）、文件（保存/导出） |
+| **设定** (`lore`) | 人物（新建人物/关系网）、世界观（新建地点/新建事件）、大纲（从章节生成/新建节点）、任务（新建任务/新建任务链） |
+| **工具** (`tools`) | 查找（查找替换/全书搜索）、起名（起名机）、数据（书库/统计/数据目录/设置） |
+| **视图** (`view`) | 左栏（章节/大纲/人物/世界树、隐藏·显示左栏）、顶栏横向轴（展开·收起时间轴）、右栏（工具格/起名机/地图/关系网/时间轴/任务、隐藏·显示右栏）、窗口（专注写作/深浅主题/正文设置） |
 
 ---
 
@@ -939,4 +1063,18 @@ cd src-tauri && cargo test
 
 ---
 
-*本 Code Wiki 对应代码版本：仓库 HEAD `7d8e980`（2026-09-09）*
+## 附录 B：已知问题（自查所得，均未修复）
+
+> 以下问题来自 2026-09-16 前端重构后的代码通读，如实记录，未作美化。
+
+| # | 位置 | 问题 |
+|---|------|------|
+| 1 | `views/Library.vue` | 欢迎页仍在写 `store.activity = 'library'` —— `activity` 字段已被删除，属重构遗留的**悬空引用**（当前无害，但会污染 store 对象）。 |
+| 2 | `components/Ribbon.vue` | 「工具 → 查找」组里的**「全书搜索」按钮实际打开的是起名机**（`store.rightTool = "namer"`），疑似写错。 |
+| 3 | `store.js` | `aiPanelOpen`、`showRelCanvas`、`toastOk` 三个字段**无任何消费方**（死字段）；`selChain` 固定为 `"all"` 且无人修改，任务链过滤实际使用 `LeftPane.vue` 内的局部状态。 |
+| 4 | `main.js` | `Ctrl+=` / `Ctrl+-` 调整正文字号后**没有调用 `saveSettings()`**，字号变更不落盘，重启即丢失。 |
+| 5 | `LeftPane.vue` / `store.js` | 注释仍写「4 个树 Tab」（`leftTree` 注释也只列了 `chapters/outline/characters/world`），实际已是 **5 个**（含 `tasks`）。 |
+
+---
+
+*本 Code Wiki 对应代码版本：仓库 HEAD（Tauri 单引擎，2026-09-16）*
