@@ -7,3 +7,7 @@
 
 # Runtime data directory (encryption keys, settings, user novels - never commit)
 **/data/
+
+# 含明文凭据的交接文档（勿提交/推送）
+/上下文摘要.md
+err.log

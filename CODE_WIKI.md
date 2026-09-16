@@ -2,6 +2,20 @@
 
 > 为中文小说创作而生的本地编辑器，Rust + Tauri 2（Vue 3 前端）双栈架构，全部数据以 AES-256-GCM 加密缓存于安装目录。
 
+> **文档对应代码版本**：仓库 HEAD `7d8e980`（2026-09-09）。
+>
+> 本仓库维护两套前端，二者能力已有差异，阅读时请注意区分：
+>
+> | 能力 | Tauri 版（`src-tauri/` + `frontend/`，主推发布版） | egui 版（根 `src/`） |
+> |------|------|------|
+> | 章节/大纲/人物/世界观/时间线/任务/统计 | ✅ | ✅ |
+> | 导出 txt / md | ✅ | ✅ |
+> | `.jsb` 密码加密备份（导出 + 导入） | ❌ 已移除 | ✅ 保留 |
+> | AI 创作助手（面板 + 14 种动作 + 设置项） | ❌ 前端已全部下线（后端代码保留未接入） | ✅ 保留可用 |
+> | 全局快捷键 `Ctrl+J`（AI 面板） | ❌ 已移除 | ✅ 保留 |
+>
+> **下文凡涉及 `.jsb`、AI 前端入口、`Ctrl+J`、Scrypt/Zlib 的描述，若无特别标注，均仅适用于 egui 版。**
+
 ---
 
 ## 目录
@@ -11,11 +25,11 @@
 3. [目录结构说明](#3-目录结构说明)
 4. [数据模型层 (Model)](#4-数据模型层-model)
 5. [加密存储层 (Store / Crypto)](#5-加密存储层-store--crypto)
-6. [AI 服务层 (AI)](#6-ai-服务层-ai)
+6. [AI 服务层 (AI)（后端保留，Tauri 前端未接入）](#6-ai-服务层-ai)
 7. [egui 原生前端 (src/)](#7-egui-原生前端-src)
 8. [Tauri 后端 (src-tauri/)](#8-tauri-后端-src-tauri)
 9. [Vue 3 Web 前端 (frontend/)](#9-vue-3-web-前端-frontend)
-10. [导出 / 导入模块](#10-导出--导入模块)
+10. [导出模块](#10-导出模块)
 11. [工具函数与通用组件](#11-工具函数与通用组件)
 12. [模块依赖关系图](#12-模块依赖关系图)
 13. [核心数据流](#13-核心数据流)
@@ -42,10 +56,10 @@
 | 时间线 | 事件排序 + 关联章节/人物/地点 |
 | 任务看板 | 任务链 + 三列看板（待办/进行中/已完成） |
 | 写作统计 | 总字数 / 今日 / 连续天数 / 30天趋势 |
-| AI 创作助手 | 续写/润色/扩写/大纲/逻辑检查/一致性检查等14种动作 |
-| Lorebook 注入 | 正文出现人物/地名时自动注入设定卡 |
-| 数据安全 | AES-256-GCM 加密落盘，不写系统目录 |
-| 导出格式 | txt / md / .jsb（Scrypt 密码加密备份） |
+| AI 创作助手 | ⚠️ 仅 egui 版保留（续写/润色/扩写/大纲/逻辑检查/一致性检查等 14 种动作）；Tauri 版前端已全部下线，后端代码保留待重新设计 |
+| Lorebook 注入 | ⚠️ 同上，仅 egui 版保留 |
+| 数据安全 | AES-256-GCM 加密落盘，不写系统目录（两版一致） |
+| 导出格式 | txt / md；`.jsb`（Scrypt 密码加密备份）仅 egui 版保留，Tauri 版已移除 |
 
 ### 1.2 技术栈全景
 
@@ -64,15 +78,16 @@
 │                      业务逻辑层（Rust）                          │
 │  ┌───────────┐  ┌───────────┐  ┌───────────┐  ┌───────────┐     │
 │  │   Model   │  │   Store   │  │    AI     │  │  Export   │     │
-│  │  数据模型  │  │  加密存储  │  │  流式客户端│  │  导入导出  │     │
+│  │  数据模型  │  │  加密存储  │  │ 流式客户端 │  │   导出     │     │
+│  │           │  │           │  │(仅egui版) │  │           │     │
 │  └───────────┘  └───────────┘  └───────────┘  └───────────┘     │
 └─────────────┬──────────────────────────────┬────────────────────┘
               │                              │
 ┌─────────────▼──────────────────────────────▼────────────────────┐
 │                       基础设施层                                 │
-│  AES-256-GCM (aes-gcm)  |  Scrypt (scrypt)  |  Zlib (flate2)    │
-│  ureq (HTTP)  |  UUID v4  |  Chrono  |  Serde JSON              │
-│  rand (CSPRNG) |  SHA-256 (密钥指纹)                            │
+│  AES-256-GCM (aes-gcm)  |  Scrypt + Zlib（仅 egui 版 .jsb 备份）  │
+│  ureq (HTTP，仅 AI)  |  UUID v4  |  Chrono  |  Serde JSON        │
+│  rand (CSPRNG) |  SHA-256 (密钥指纹)                             │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -84,6 +99,8 @@
 |------|------|--------|----------|
 | egui 原生版 | `src/` | eframe/egui 0.36 | 轻量、极致小体积、无浏览器依赖 |
 | Tauri Web版 | `src-tauri/` + `frontend/` | Tauri 2 + Vue 3 | 现代化IDE体验、CodeMirror编辑器、官方推荐发布版本 |
+
+> ⚠️ 自 2026-09-09（`7d8e980`）起，两套前端的**能力已不对等**：Tauri 版移除了 `.jsb` 备份与全部 AI 前端入口，egui 版**尚未对齐**（仍保留 `.jsb` 与 AI）。详见文首版本对照表。
 
 ---
 
@@ -107,18 +124,18 @@
 │  业务方法: add_chapter / delete_chapter / total_words  │
 ├───────────────────────────────────────────────────────┤
 │                  Infrastructure Layer                  │
-│  Store (加密IO) · Crypto (AES/Scrypt)                 │
-│  AI Client (流式HTTP) · Export (txt/md/jsb)           │
-│  Util (UUID/时间/字数统计)                             │
+│  Store (加密IO) · Crypto (AES-256-GCM / JSR1)         │
+│  AI Client (流式HTTP，仅 egui 版接入)                   │
+│  Export (txt/md；jsb 仅 egui 版) · Util (ID/时间/字数) │
 └───────────────────────────────────────────────────────┘
 ```
 
 ### 2.2 设计原则
 
 1. **数据本地优先**：所有数据加密切块存在安装目录，不写 `%APPDATA%`/`~/.local`/临时目录
-2. **密钥与数据解耦**：本地密钥 `.jinshu_key` + 可选密码备份 `.jsb`（Scrypt 派生密钥）
-3. **无状态AI客户端**：流式 SSE 输出，通过 mpsc channel / Tauri events 推送增量
-4. **内存态 + 定期刷盘**：正文在内存 `HashMap<cid, String>`，脏位标记 + 自动保存（默认5秒）
+2. **密钥与数据解耦**：本地密钥 `.jinshu_key`（egui 版另有可选密码备份 `.jsb`，Scrypt 派生密钥）
+3. **无状态AI客户端**：流式 SSE 输出；egui 版经 mpsc channel 轮询，Tauri 版经 Tauri events 推送增量（**当前 Tauri 前端已无调用入口**）
+4. **内存态 + 定期刷盘**：正文在内存 `HashMap<cid, String>`，脏位标记 + 自动保存（默认5秒 / Tauri 版前端 2 秒 debounce）
 5. **前端自由**：egui 与 Tauri 版共享 model/store/ai/crypto/export 核心代码
 
 ---
@@ -134,26 +151,24 @@ JinShu-rust/
 │   ├── src/
 │   │   ├── components/         #   UI 组件
 │   │   │   ├── TitleBar.vue        #   自定义标题栏 + 窗口控制
-│   │   │   ├── ActivityBar.vue     #   左侧图标活动栏
+│   │   │   ├── ActivityBar.vue     #   左侧图标活动栏（10 个入口）
 │   │   │   ├── SidePanel.vue       #   侧边面板（章节/大纲/人物…）
 │   │   │   ├── EditorView.vue      #   CodeMirror 6 编辑器视图
-│   │   │   ├── AIPanel.vue         #   AI 助手对话面板
-│   │   │   ├── Palette.vue         #   Ctrl+P 命令面板
-│   │   │   ├── Modal.vue           #   对话框（新建/导出/删除…）
+│   │   │   ├── Palette.vue         #   Ctrl+P 命令面板（13 条命令）
+│   │   │   ├── Modal.vue           #   对话框（新建/导出/删除/起名机…）
 │   │   │   ├── ContextMenu.vue     #   右键菜单
 │   │   │   ├── StatusBar.vue       #   底部状态栏
 │   │   │   └── Icon.vue            #   图标组件
 │   │   ├── views/              #   全屏活动视图
-│   │   │   ├── Library.vue         #   书库列表
+│   │   │   ├── Library.vue         #   书库列表 + 欢迎页
 │   │   │   ├── StatsView.vue       #   写作统计
-│   │   │   ├── SettingsView.vue    #   设置页
+│   │   │   ├── SettingsView.vue    #   设置页（外观 / 编辑 / 存储与安全）
 │   │   │   └── DetailViews.vue     #   人物/地点/时间线/任务/大纲详情
 │   │   ├── store.js            #   全局响应式状态 + 业务动作
-│   │   ├── api.js              #   Tauri invoke 命令封装
-│   │   ├── names.js            #   角色定位/地点类型/任务状态常量
-│   │   ├── prompts.js          #   AI 动作提示词模板（前端版）
+│   │   ├── api.js              #   Tauri invoke 命令封装（12 个）
+│   │   ├── names.js            #   本地起名机（纯算法字库，不依赖网络）
 │   │   ├── App.vue             #   根组件：布局装配
-│   │   ├── main.js             #   Vue 入口 + 主题初始化
+│   │   ├── main.js             #   Vue 入口 + 主题初始化 + 全局快捷键
 │   │   └── styles/theme.css    #   CSS 变量主题系统（深浅色+8种强调色）
 │   ├── index.html
 │   ├── package.json            #   Vue 3.5 + Vite 6 + CodeMirror 6
@@ -348,8 +363,8 @@ data/
             └── {cid_2}.jsr
 ```
 
-- `.jsr` = JinShu Rust 本地加密格式
-- `.jsb` = JinShu Backup 跨设备密码备份格式
+- `.jsr` = JinShu Rust 本地加密格式（**两版共用，是当前唯一落盘格式**）
+- `.jsb` = JinShu Backup 跨设备密码备份格式（**仅 egui 版保留；Tauri 版已于 2026-09-09 移除**）
 
 ### 5.3 加密方案
 
@@ -374,7 +389,7 @@ pub fn decrypt_file(path: &Path, key: &[u8;32]) -> Result<Vec<u8>, String>
 pub fn fingerprint(key: &[u8;32]) -> String  // SHA256前12位十六进制（状态栏显示）
 ```
 
-#### 5.3.2 JSB 密码备份格式（Scrypt + AES-256-GCM + Zlib）
+#### 5.3.2 JSB 密码备份格式（Scrypt + AES-256-GCM + Zlib）— 仅 egui 版
 
 ```
 文件布局: [MAGIC 4B][VER 1B][SALT 16B][NONCE 12B][CIPHERTEXT(zlib(json))...]
@@ -439,7 +454,7 @@ AppSettings
 │   ├── markdown_highlight: bool # 中文写作默认关闭
 │   ├── auto_indent: bool        # 首段自动两字缩进
 │   └── show_line_numbers: bool
-└── ai: AiSettings
+└── ai: AiSettings              # ⚠️ 字段保留用于兼容既有 settings.jsr；Tauri 版前端已无任何入口
     ├── protocol: "openai" | "anthropic"
     ├── base_url
     ├── api_key                 # 加密存储
@@ -456,6 +471,14 @@ AppSettings
 ## 6. AI 服务层 (AI)
 
 > 路径：[src/ai/client.rs](file:///c:/Code/JinShu-rust/src/ai/client.rs) + [src/ai/prompts.rs](file:///c:/Code/JinShu-rust/src/ai/prompts.rs)
+> Tauri 对应实现：`src-tauri/src/ai_client.rs` + `src-tauri/src/ai_prompts.rs`
+
+> ⚠️ **接入状态（2026-09-09 起，提交 `7d8e980`）**
+>
+> - **egui 版**：AI 功能完整保留并可用（面板 + 14 种动作 + 设置项 + Lorebook 注入）。
+> - **Tauri 版**：前端 AI 入口已**全部下线**（`AIPanel.vue`、`prompts.js` 整文件删除；命令面板 AI 命令、编辑区「续写」、侧栏「AI 生成」、人物卡「AI 完善人设」、状态栏 AI 状态、设置页「AI 服务」段、`Ctrl+J`、`ai-*` 事件监听全部移除）。
+> - `ai_start` / `ai_cancel` / `ai_test` 三条命令**仍在 `invoke_handler` 中注册**，但已无任何调用方；`ai_client.rs` / `ai_prompts.rs` 随之产生 `dead_code` 警告，属**预期现象**，保留作为后续 AI 大改的起点。
+> - `store::AiSettings`、`AppSettings.ai`、`Model.ai_summary` 字段同样保留，用于兼容既有 `settings.jsr` 数据。
 
 ### 6.1 架构：独立线程 + SSE 流式 + Channel
 
@@ -476,6 +499,7 @@ Worker Thread (ureq Agent)
 
 egui 版通过 `mpsc::channel` + 每帧 `poll_ai()` 轮询；Tauri 版通过 `app.emit()` 推送前端事件：
 - `ai-chunk` / `ai-done` / `ai-error` / `ai-test-result`
+- ⚠️ Tauri 版前端**已不再注册这些监听器**（原注册代码位于 `frontend/src/main.js`，已移除）
 
 ### 6.2 AiEvent 枚举
 
@@ -498,7 +522,7 @@ pub fn stream_chat(
 )
 ```
 
-Tauri 版额外命令：
+Tauri 版额外命令（**已注册但当前无前端调用方**）：
 ```rust
 #[tauri::command] ai_start(cfg, messages)  // 启动流式请求，结果走事件
 #[tauri::command] ai_cancel()              // 置位 cancel flag
@@ -687,6 +711,8 @@ pub struct AppData {
 
 ### 8.3 命令清单 (invoke_handler)
 
+> 共 **15** 条命令（`7d8e980` 起：原 16 条，移除 `import_jsb`）。
+
 | 命令 | 签名 | 返回 |
 |------|------|------|
 | **基础** | | |
@@ -701,34 +727,27 @@ pub struct AppData {
 | `delete_novel` | `id` | `()` |
 | **设置** | | |
 | `load_settings` / `save_settings` | | AppSettings |
-| **导入导出** | | |
-| `export_work` | `fmt, path, password?, novel, chapters` | `()` |
-| `import_jsb` | `path, password` | `new_novel_id` |
+| **导出** | | |
+| `export_work` | `fmt, path, novel, chapters` | `()`（`fmt` 仅接受 `txt` / `md`，其他值返回"未知导出格式"） |
 | `open_dir` | `path` | `()` (explorer/xdg-open) |
-| **AI** | | |
+| **AI（已注册，但前端无调用方）** | | |
 | `ai_start` | `cfg, messages` | `()` → 事件流 ai-chunk/done/error |
 | `ai_cancel` | `()` | `()` |
 | `ai_test` | `cfg` | `()` → 事件 ai-test-result |
 
-### 8.4 AI 事件机制
+### 8.4 AI 事件机制（保留，Tauri 前端未接入）
 
 ```
-前端 store.startAi()
-  └─► invoke('ai_start')
+前端 store.startAi()   ← ⚠️ 该函数与 AIPanel.vue 已随 AI 下线一并移除
+  └─► invoke('ai_start')        （后端命令仍在，暂无人调用）
         └─► Rust 端启动线程
               ├─ ureq 流式请求
-              ├─ app.emit('ai-chunk', text)  ──► 前端 listen → aiStreamText += t
-              ├─ app.emit('ai-done', ())     ──► 前端 push 完整消息
-              └─ app.emit('ai-error', msg)   ──► 前端显示错误
+              ├─ app.emit('ai-chunk', text)  ──► 原前端 listen → aiStreamText += t
+              ├─ app.emit('ai-done', ())     ──► 原前端 push 完整消息
+              └─ app.emit('ai-error', msg)   ──► 原前端显示错误
 ```
 
-前端在 `main.js` 注册事件监听器：
-```js
-listen("ai-chunk", ({payload}) => store.aiStreamText += payload);
-listen("ai-done", ...);
-listen("ai-error", ...);
-listen("ai-test-result", ...);
-```
+> 原 `frontend/src/main.js` 中的 `listen("ai-chunk" / "ai-done" / "ai-error" / "ai-test-result")` 监听器已**全部移除**；如需重新接入，需先恢复面板与状态字段，再补回这四个监听器。
 
 ---
 
@@ -749,17 +768,16 @@ listen("ai-test-result", ...);
 
 ### 9.2 响应式状态 (store.js)
 
-与 egui 版 `AppState` 对应字段：
+与 egui 版 `AppState` 对应字段（**不含任何 AI 状态**，AI 字段已于 `7d8e980` 移除）：
 ```js
 store = reactive({
   ready, dataDir, keyFp, settings,
   library, novel, chapters,    // chapters = {cid: text}
   dirty, openTabs, activeTab,
-  activity, sidebarOpen, aiPanelOpen, focusMode,
-  paletteOpen, findOpen, findReplace,
-  aiMsgs, aiStreaming, aiStreamText, aiAction, aiInput, useLore, summaries, aiTestResult,
+  activity, sidebarOpen, focusMode,
+  paletteOpen, paletteQuery, findOpen, findReplace,
   selChar, selLoc, selEvent, selOutline, selChain, showRelCanvas, canvasPos,
-  dialog, toast, selectedText, cursorPos, wordCount, saveTimer, lastAutosave
+  dialog, toast, toastOk, selectedText, cursorPos, wordCount, saveTimer, lastAutosave
 })
 ```
 
@@ -767,19 +785,20 @@ store = reactive({
 
 | 函数 | 作用 |
 |------|------|
-| `openNovel(id)` | invoke load_novel → 填充 chapters → 恢复上次章节 |
+| `openNovel(id)` | invoke load_novel → 填充 chapters → 恢复上次打开的章节（`settings.lastChapter[id]`），否则打开第一章 |
 | `createNovel(form)` | invoke create_novel → 刷新书库 → 自动打开 |
 | `closeNovel()` | saveAll + 回退书库 |
 | `openTab / closeTab` | 标签页管理 + 保存设置 |
 | `markDirty(cid)` | 置脏 + `scheduleSave()` |
-| `scheduleSave()` | 2秒 debounce → saveAll |
+| `scheduleSave()` | 2 秒 debounce → saveAll |
 | `saveChapterNow(cid)` | invoke save_chapter → 同步字数/stats/total |
 | `saveAll()` | 遍历 dirty → 批量保存 + saveNovel |
 | `saveSettings()` | invoke save_settings |
 | `applyTheme()` | 设置 documentElement data-theme + CSS 变量（accent/ok/danger） |
-| `startAi(action, messages)` | invoke ai_start → 等待事件 |
-| `aiInsertToEditor(content)` | 触发 CustomEvent `jinshu:insert` → EditorView 在光标处插入 |
 | `countWords(s)` | 中文字符 + 英文单词 双语种统计（JS 版镜像 util::count_words） |
+| `today() / toast() / allChapters() / chapterTitle() / truncate()` | 辅助函数 |
+
+> `startAi()` / `aiInsertToEditor()` / `aiCancel()` 已随 AI 下线删除；`jinshu:insert` 事件现仅由编辑器插入正文与起名机结果使用。
 
 ### 9.4 组件装配 (App.vue)
 
@@ -787,7 +806,7 @@ store = reactive({
 <App>
   ├─ TitleBar            自定义标题栏 + 窗口控制 + 拖窗
   ├─ body (flex row)
-  │   ├─ ActivityBar     10个活动图标按钮（非专注模式）
+  │   ├─ ActivityBar     10 个活动图标按钮（非专注模式）
   │   ├─ SidePanel       侧栏内容（chapters/outline/characters/world/timeline/tasks/search）
   │   ├─ <main> central
   │   │   ├─ Library        activity=library
@@ -796,13 +815,14 @@ store = reactive({
   │   │   ├─ DetailViews    characters/world/timeline/tasks/outline 详情+画布
   │   │   ├─ EditorView     CodeMirror 6 编辑器（有 activeTab 时）
   │   │   └─ Empty 提示     无章节时
-  │   └─ AIPanel        右侧 AI 助手面板（非专注模式）
-  ├─ StatusBar
+  ├─ StatusBar           🔒加密存储 | 书名 | 字数 | 今日+N | 光标行列 | 密钥指纹
   ├─ Palette (条件)
   ├─ Modal (条件)
   ├─ ContextMenu
   └─ toast (fixed)
 ```
+
+> 右侧 **AIPanel 面板已删除**，布局现为「活动栏 + 侧栏 + 中央区」三段式。
 
 ### 9.5 主题系统 (styles/theme.css)
 
@@ -830,13 +850,16 @@ CSS 变量双主题 + 运行时强调色注入：
 
 ---
 
-## 10. 导出 / 导入模块
+## 10. 导出模块
 
-> 路径：[src/export.rs](file:///c:/Code/JinShu-rust/src/export.rs) / [src-tauri/src/export.rs](file:///c:/Code/JinShu-rust/src-tauri/src/export.rs)
+> 路径：[src-tauri/src/export.rs](file:///c:/Code/JinShu-rust/src-tauri/src/export.rs)（Tauri 版，主推）/ [src/export.rs](file:///c:/Code/JinShu-rust/src/export.rs)（egui 版）
+>
+> | 版本 | 能力 |
+> |------|------|
+> | Tauri 版 | 仅 `export_txt` / `export_md` 两个函数；**无任何导入能力**（`export_jsb` / `import_jsb` / `import_to_store` / `default_export_dir` 已于 `7d8e980` 移除，`scrypt`、`flate2` 依赖同步删除） |
+> | egui 版 | 保留 `export_txt` / `export_md` / `export_jsb` / `import_jsb`，见 10.3 |
 
-### 10.1 导出格式
-
-#### txt 纯文本
+### 10.1 txt 纯文本
 ```
 《书名》
 作者：xxx
@@ -851,7 +874,7 @@ CSS 变量双主题 + 运行时强调色注入：
 正文……
 ```
 
-#### md Markdown
+### 10.2 md Markdown
 ```md
 # 书名
 
@@ -868,7 +891,8 @@ CSS 变量双主题 + 运行时强调色注入：
 正文……
 ```
 
-#### jsb 加密备份
+### 10.3 jsb 加密备份与导入（仅 egui 版）
+
 ```jsonc
 {
   "app": "jinshu-rust",
@@ -879,16 +903,15 @@ CSS 变量双主题 + 运行时强调色注入：
 // → Zlib 压缩 → Scrypt(password, salt) 派生密钥 → AES-256-GCM
 ```
 
-### 10.2 导入流程
+导入流程：
 
 ```
-import_jsb(path, password)
-  ├─ 读取 .jsb 文件字节
+import_jsb(password, bytes)
   ├─ crypto::decrypt_jsb(password, bytes) → zlib → json 字符串
   ├─ 反序列化为 {novel, chapters}
   ├─ 重新分配 novel.meta.id（避免覆盖本地已有）
   ├─ Store::save_novel() → 逐章 Store::save_chapter()
-  └─ 返回 new_novel_id
+  └─ 返回 (Novel, chapters)，由调用方决定后续落盘
 ```
 
 ---
@@ -974,14 +997,14 @@ main.rs (入口)
 
 ```
 frontend/*.vue + store.js
-  └─► api.js (invoke 封装)
-        └──► IPC ──► src-tauri/src/main.rs (#[tauri::command])
+  └─► api.js (invoke 封装，12 个方法)
+        └──► IPC ──► src-tauri/src/main.rs (#[tauri::command]，15 条)
                               ├─► store.rs    (≈ src/store/mod.rs)
                               │     └─► crypto.rs
                               ├─► model.rs    (≈ src/model.rs)
-                              ├─► ai_client.rs (≈ src/ai/client.rs)
+                              ├─► ai_client.rs (≈ src/ai/client.rs)  ⚠️ 前端已无调用方
                               │     └─► ai_prompts.rs
-                              ├─► export.rs   (≈ src/export.rs)
+                              ├─► export.rs   (≈ src/export.rs，仅 txt/md)
                               └─► util.rs     (≈ src/util.rs)
 ```
 
@@ -993,11 +1016,11 @@ frontend/*.vue + store.js
 | `tauri 2` | WebView 桌面应用框架 |
 | `serde + serde_json` | 所有数据模型序列化 |
 | `aes-gcm 0.10` | AES-256-GCM AEAD 加解密（RustCrypto 项目） |
-| `scrypt 0.11` | 密码派生密钥（.jsb 备份） |
+| `scrypt 0.11` | 密码派生密钥（`.jsb` 备份；**仅 egui 版**，Tauri 版已移除） |
 | `sha2 0.10` | 密钥指纹 (SHA-256) |
 | `rand 0.8` | 密钥/nonce/salt CSPRNG |
-| `flate2 1` | .jsb 备份 Zlib 压缩 |
-| `ureq 2` | 同步阻塞 HTTP 客户端（AI SSE） |
+| `flate2 1` | `.jsb` 备份 Zlib 压缩（**仅 egui 版**，Tauri 版已移除） |
+| `ureq 2` | 同步阻塞 HTTP 客户端（用于 AI SSE；Tauri 后端仍依赖，但无调用方） |
 | `chrono 0.4` | 时间戳/日期格式化 |
 | `uuid 1 (v4)` | 所有实体 ID 生成 |
 | `rfd 0.15` | egui 版原生文件对话框 |
@@ -1036,7 +1059,7 @@ AppState::save_chapter_now(cid) 或 saveAll()
 完成（加密文件落盘）
 ```
 
-### 13.2 AI 请求 → 响应
+### 13.2 AI 请求 → 响应（仅 egui 版；Tauri 版前端入口已下线）
 
 ```
 用户点击"✨续写"按钮
@@ -1080,7 +1103,7 @@ tauri build 编译 Rust 后端
 用户双击 exe
    ├─ Store::init() → 解析 data_dir + 生成/加载 .jinshu_key
    ├─ tauri::Builder::manage(AppData{store,cancel})
-   ├─ 注册 17 条 commands
+   ├─ 注册 15 条 commands（含 3 条 AI 命令，前端未调用）
    └─ 启动 WebView → 加载 index.html
          │
          ▼
@@ -1089,8 +1112,7 @@ tauri build 编译 Rust 后端
       ├─ store.settings = 结果
       ├─ applyTheme() → 设置 CSS 变量
       ├─ api.listNovels() → store.library
-      ├─ 注册 4 个 AI 事件监听器
-      ├─ 注册全局快捷键 (keydown → Command 分发)
+      ├─ 注册全局快捷键（Ctrl+S/P/B/N/=/- 、Esc）
       └─ createApp(App).mount()
             │
             ▼
@@ -1170,15 +1192,18 @@ cargo run
 ### 14.5 运行测试
 
 ```bash
-# egui 版 crate 根目录下：
+# Tauri 版（主推）：6 项
+cd src-tauri && cargo test
+#   - crypto_roundtrip         AES-256-GCM 加密往返 + 错误密钥必须失败 + AAD 绑定
+#   - store_encrypted_files    数据目录全盘加密验证（无明文文件）
+#   - word_count_cjk           CJK/英文混排字数统计正确性
+#   - novel_chapter_flow       卷/章 CRUD 业务
+#   - export_formats           txt / md 导出格式
+#   - outline_parse            大纲缩进文本解析
+
+# egui 版（根 crate）：7 项 = 上述 6 项 + jsb_password_roundtrip
 cargo test
-# 7 项测试：
-#   - crypto_roundtrip：AES 加密往返 + 错误密钥必须失败 + AAD 绑定
-#   - jsb_password_roundtrip：Scrypt + AES 密码备份往返
-#   - store_encrypted_files：数据目录全盘加密验证（无明文文件）
-#   - word_count_cjk：CJK/英文混排字数统计正确性
-#   - novel_chapter_flow：卷/章 CRUD 业务
-#   （另有 export 格式 / 大纲解析 测试，视源码版本）
+#   - jsb_password_roundtrip   Scrypt 派生 + Zlib + AES 密码备份往返（egui 版独有）
 ```
 
 ---
@@ -1194,21 +1219,34 @@ cargo test
 
 ## 16. 测试覆盖
 
+### 16.1 Tauri 版（`src-tauri/`，6 项）
+
 | 测试文件 | 测试名 | 验证点 |
 |----------|--------|--------|
 | `src/model.rs` | `word_count_cjk` | 汉字/标点/英文/空格混合统计边界 |
 | `src/model.rs` | `novel_chapter_flow` | 新建卷→加章→查询→删除→计数同步 |
-| `src/store/crypto.rs` | `crypto_roundtrip` | AES-GCM 加解对称 + 密钥错误/AAD 错误必失败 |
-| `src/store/crypto.rs` | `jsb_password_roundtrip` | Scrypt 派生+Zlib+AES 密码备份往返 + 错误密码必失败 |
-| `src/store/mod.rs` | `store_encrypted_files` | 1.无明文泄漏（字节扫描）；2.无 `.jsr` / `.jinshu_key` 外的扩展名；3.读回解密正确 |
+| `src/crypto.rs` | `crypto_roundtrip` | AES-GCM 加解对称 + 密钥错误/AAD 错误必失败 |
+| `src/store.rs` | `store_encrypted_files` | 1.无明文泄漏（字节扫描）；2.无 `.jsr` / `.jinshu_key` 外的扩展名；3.读回解密正确 |
+| `src/export.rs` | `export_formats` | txt / md 两种导出格式的结构与内容 |
+| `src/ai_prompts.rs` | `outline_parse` | 大纲缩进文本 → 树结构的解析（AI 未接入，测试仍保留） |
 
-**加密落盘测试的严格性**：遍历 `data_dir` 所有文件扩展名必须为 `jsr` 或名称为 `.jinshu_key`，保证不产生临时泄漏文件。
+### 16.2 egui 版（根 crate，7 项）
+
+即上表全部 6 项（对应路径为 `src/model.rs`、`src/store/crypto.rs`、`src/store/mod.rs`、`src/export.rs`、`src/ai/prompts.rs`），**外加**：
+
+| 测试文件 | 测试名 | 验证点 |
+|----------|--------|--------|
+| `src/store/crypto.rs` | `jsb_password_roundtrip` | Scrypt 派生 + Zlib + AES 密码备份往返 + 错误密码必失败 |
+
+**加密落盘测试的严格性**（两版一致）：遍历 `data_dir` 所有文件扩展名必须为 `jsr` 或名称为 `.jinshu_key`，保证不产生临时泄漏文件。
 
 ---
 
 ## 17. 快捷键与命令系统
 
-### 17.1 Command 枚举总览
+> 本节 17.1 / 17.2 描述 **egui 版**的 `Command` 枚举与命令面板；17.3 为两版对照。
+
+### 17.1 Command 枚举总览（egui 版）
 
 ```rust
 pub enum Command {
@@ -1233,33 +1271,30 @@ pub enum Command {
 fn fuzzy_match(query: &str, label: &str) -> bool
 // 按字符顺序包含（不需要连续），例如"xj"匹配"新建小说" x→i→a→n→**j**→i→a→n
 ```
-Tauri 版：`components/Palette.vue` 中实现等价 `fuzzyMatch()` + 键盘方向键选择 + Enter 执行。
+Tauri 版：`components/Palette.vue` 中实现等价 `fuzzyMatch()` + 键盘方向键选择 + Enter 执行，共 **13 条命令**：新建小说 / 打开书库 / 保存全部 / 导出作品 / 新建章节 / 新建分卷 / 本地起名机 / 切换侧边栏 / 切换主题 / 查找 / 写作统计 / 打开设置 / 关于锦书。
 
-### 17.3 命令与快捷键映射表（最终版）
+### 17.3 命令与快捷键映射表（两版对照）
 
-| 命令 | 快捷键 | 图标 / 入口 |
-|------|--------|-------------|
-| 新建小说 | Ctrl+N | 欢迎页卡片 / 命令面板 |
-| 打开书库 | Ctrl+O | 活动栏 📚 |
-| 保存全部 | Ctrl+S | 标题栏 💾 / 章节头按钮 |
-| 导出作品 | — | 命令面板 / 对话框 |
-| 导入备份 | — | 欢迎页卡片 / 命令面板 |
-| 查找 | Ctrl+F | 章节内查找条 |
-| 查找替换 | Ctrl+H | 查找条展开替换行 |
-| 全局搜索 | Ctrl+Shift+F | 活动栏 🔍 / 侧栏 |
-| 命令面板 | Ctrl+P | 屏幕中央悬浮搜索 |
-| 切换侧边栏 | Ctrl+B | — |
-| 切换 AI 面板 | Ctrl+J | — |
-| 切换深/浅色 | — | 设置页或命令面板 |
-| 增大字号 | Ctrl+= | — |
-| 减小字号 | Ctrl+- | — |
-| 关闭标签页 | Ctrl+W | 标签右键菜单 |
-| 新建章节 | — | 章节面板 ➕ |
-| 新建分卷 | — | 大纲面板 ➕ |
-| 写作统计 | — | 活动栏 📊 |
-| 设置 | — | 活动栏 ⚙️ |
-| AI 续写 | — | 章节头 ✨续写 / 命令面板 |
-| AI 其他 13 项 | — | AI 面板顶栏下拉菜单 / 命令面板 |
+| 命令 | 快捷键 | 入口 | 版本 |
+|------|--------|------|------|
+| 新建小说 | Ctrl+N | 欢迎页卡片 / 命令面板 | 两版 |
+| 保存全部 | Ctrl+S | 书库页按钮 / 命令面板 | 两版 |
+| 命令面板 | Ctrl+P | 屏幕中央悬浮搜索 | 两版 |
+| 查找 | Ctrl+F | 章节内查找条 | 两版 |
+| 查找替换 | Ctrl+H | 查找条展开替换行 | 两版 |
+| 切换侧边栏 | Ctrl+B | 命令面板 | 两版 |
+| 增大 / 减小字号 | Ctrl+= / Ctrl+- | — | 两版 |
+| 关闭标签页 | Ctrl+W | 标签右键菜单 | egui 版（Tauri 版当前无此按键绑定） |
+| 打开书库 | — | 左侧活动栏「书库」/ 命令面板 | 两版 |
+| 全局搜索 | — | 左侧活动栏「搜索」（Tauri 版无 `Ctrl+Shift+F` 绑定） | 两版 |
+| 新建章节 / 新建分卷 | — | 侧栏面板 ➕ / 命令面板 | 两版 |
+| 导出作品 | — | 命令面板 / 对话框 | 两版（Tauri 仅 txt / md） |
+| 写作统计 / 设置 / 关于 | — | 左侧活动栏 / 命令面板 | 两版 |
+| 本地起名机 | — | 命令面板 / 对话框 | Tauri 版 |
+| 导入备份 | — | 欢迎页卡片 / 命令面板 | **仅 egui 版** |
+| 切换 AI 面板 | Ctrl+J | — | **仅 egui 版** |
+| AI 续写 | — | 章节头 ✨续写 / 命令面板 | **仅 egui 版** |
+| AI 其他 13 项 | — | AI 面板顶栏下拉菜单 / 命令面板 | **仅 egui 版** |
 
 ---
 
@@ -1267,15 +1302,15 @@ Tauri 版：`components/Palette.vue` 中实现等价 `fuzzyMatch()` + 键盘方�
 
 > 摘自 README 并补充实现细节
 
-1. **密钥文件**：`data/.jinshu_key` 32字节纯随机，Unix 权限 0o600。删除此文件后旧数据**无法解密**，应配合 `.jsb` 密码备份作为灾备。
+1. **密钥文件**：`data/.jinshu_key` 32字节纯随机，Unix 权限 0o600。删除此文件后旧数据**无法解密**，请定期整目录备份（egui 版另可导出 `.jsb` 密码备份作为跨设备灾备）。
 2. **AAD 绑定**：加密时使用文件名作为附加认证数据，防止攻击者将"章A密文"重命名为"章B密文"后被解密为章B的正文冒充。
 3. **原子写入**：所有文件先写 `*.tmp` 再 rename，保证断电崩溃不损坏原文件（只可能丢失最近一次）。
 4. **不污染系统**：不写 `%APPDATA%`、`%TEMP%`、`~/.local`、`/tmp`（已验证：所有持久文件扩展名均为 `.jsr` 或名为 `.jinshu_key`）。
 5. **威胁模型**：
    - 可防：随手读盘、同事借用、备份盘丢失、云盘同步时的明文泄漏。
    - 不可防：同权限进程注入读内存、内存dump、物理机调试类攻击（密钥与数据同机）。
-   - 高强度方案：定期导出 `.jsb` 密码备份（密钥由 Scrypt 从密码派生，密码不落盘）。
+   - 高强度方案：定期整目录备份（含 `.jinshu_key`）；egui 版还可导出 `.jsb` 密码备份（密钥由 Scrypt 从密码派生，密码不落盘）。Tauri 版自 `7d8e980` 起已无 `.jsb`，如需更强保护需另行设计。
 
 ---
 
-*本 Code Wiki 对应代码版本：仓库 HEAD（2026-09-02 分析快照）*
+*本 Code Wiki 对应代码版本：仓库 HEAD `7d8e980`（2026-09-09）*
