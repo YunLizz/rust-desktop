@@ -34,6 +34,7 @@
     ],
     "windows": {
       "nsis": {
+        "template": "../packaging/windows/installer.nsi",
         "languages": [
           "SimpChinese"
         ],
