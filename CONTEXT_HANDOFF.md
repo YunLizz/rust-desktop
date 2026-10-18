@@ -1,8 +1,8 @@
 # 锦书 JinShu — 上下文交接文档
 
 > **用途**：本文件用于跨对话继承项目上下文。新会话应先读本文，再动手。
-> **最后更新**：2026-09-17
-> **当前 HEAD**：`74f6255 docs: 按前端重构后的现状二次同步 README 与 Code Wiki`
+> **最后更新**：2026-10-18
+> **当前 HEAD**：`f60c302 docs: 增加换工具交接摘要 + 定制 NSIS 安装器`
 
 ---
 
@@ -87,7 +87,9 @@ JinShu-rust/
 │   │       └── RelationGraph.vue  # 人物关系网（全屏）
 │   └── dist/                      # 构建产物（已入库）
 ├── dist/JinShu-win64/             # Windows 便携包
-├── packaging/arch/PKGBUILD        # Arch 打包
+├── packaging/
+│   ├── windows/installer.nsi      # 定制 NSIS 安装器模板（默认装到 $EXEDIR）
+│   └── arch/PKGBUILD              # Arch 打包
 ├── build_pkg_win.sh               # Windows 打包脚本
 ├── tools/cdp_test.mjs             # CDP 端到端测试脚本
 ├── README.md / CODE_WIKI.md       # 已同步
@@ -168,7 +170,12 @@ cd src-tauri && cargo build --release
 
 ### 打包
 ```bash
-bash build_pkg_win.sh          # Windows → dist/JinShu-rust-win64-tauri.zip（~4.1MB）
+bash build_pkg_win.sh          # Windows 便携 zip → dist/JinShu-rust-win64-tauri.zip（~4.1MB）
+
+# Windows NSIS 安装包（先构建前端；产物在 src-tauri/target/release/bundle/nsis/）
+cd frontend && npm run build && cd ..
+frontend/node_modules/.bin/tauri build --bundles nsis
+
 cd packaging/arch && makepkg -si   # Arch（需在 Linux 上执行）
 ```
 
@@ -229,18 +236,20 @@ PowerShell 截图**必须声明 DPI 感知**（否则拿到缩放错误的图）
 ## 九、当前状态与待办
 
 ### 运行状态
-- 应用**当前正在运行**（进程 `JinShu`，数据目录 `src-tauri/target/release/data`）
-- 最后验证：编译通过、启动零异常、全部界面元素正常
+- 应用未运行（安装包验证结束后已关闭）
+- 2026-10-18 验证：NSIS 安装包构建 / 安装 / 运行 / 加密落盘 / 卸载全部通过（详见第十一节）
+- 此前验证：编译通过、启动零异常、全部界面元素正常
 
 ### 已知待办 / 可改进
 1. **AI 功能恢复**（用户已说明后续要做，后端已就绪）
 2. **Arch Linux 实际构建验证** —— PKGBUILD 已写但**未在真机验证过**
-3. **NSIS 安装包** —— 因网络超时未生成，当前只交付便携 zip
-4. 时间轴「按章节分轨」模式下，未关联网章节的事件集中在"未关联章节"轨，可考虑支持手动指定轨道
-5. 起名机字库可继续扩充（现约 300 字）
+3. ~~NSIS 安装包~~ **已完成（2026-10-18 实测，见第十一节）**
+4. **卸载向导「删除应用数据」勾选对锦书无效** —— 模板删的是 `%APPDATA%/%LOCALAPPDATA%\{bundleId}`，真实数据在 `$INSTDIR\data`；可选修复（勾选时删除 `$INSTDIR\data`）
+5. 时间轴「按章节分轨」模式下，未关联网章节的事件集中在"未关联章节"轨，可考虑支持手动指定轨道
+6. 起名机字库可继续扩充（现约 300 字）
 
 ### 工作区状态
-`git status` **干净**（无未提交改动）。
+`git status` **干净**，本地与 `origin/master` 同步（`f60c302`）。
 
 ---
 
@@ -252,3 +261,31 @@ PowerShell 截图**必须声明 DPI 感知**（否则拿到缩放错误的图）
 - 遇到不确定的设计问题，**用 AskUserQuestion 给带预览图的选项**（用户接受度良好）
 - 报告要**先说结论**，数据要**实测**（本项目大量使用 CDP 实测 + 像素级验证）
 - 破坏性操作（删文件、改远程）必须先确认
+
+---
+
+## 十一、NSIS 安装包实测记录（2026-10-18）
+
+### 环境与构建
+- 会话以完全权限运行（此前 workspace-write 沙箱因 `C:\Code` 缺少修改权限位而无法启动命令行）
+- NSIS 工具链已缓存于 `%LOCALAPPDATA%\tauri\NSIS`，makensis 可用，无需联网下载
+- 命令：`cd frontend && npm run build` → `frontend/node_modules/.bin/tauri build --bundles nsis`
+- 产物：`src-tauri/target/release/bundle/nsis/锦书_0.1.0_x64-setup.exe`（3,098 KB，`target/` 已 gitignore，未入库）
+
+### 实测结果
+| 项 | 结果 |
+|---|---|
+| 默认安装目录 | `$EXEDIR\锦书`（安装器放 `C:\Code\_installer_verify\` 时装到 `C:\Code\_installer_verify\锦书`）；**未创建** `%LOCALAPPDATA%\锦书` |
+| `%APPDATA%` / `%TEMP%` | 均未创建锦书目录 |
+| 自定义目录 | `setup.exe /S /D=<dir>` 正常，不会误建默认目录 |
+| 快捷方式 / 注册表 | 开始菜单 + 桌面快捷方式、`HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\锦书` 均正常 |
+| 启动 | 标题 `锦书 · 小说编辑器`，1380×880，CDP `Runtime.enable` 全程零 `exceptionThrown` |
+| 数据落盘 | 安装目录 `data/`：`.jinshu_key`(32B)、`settings.jsr`、`novels/<id>/novel.jsr`、`chapters/<id>.jsr`（JSR1 格式） |
+| 加密承诺 | 新建作品并输入正文 → 章节文件 137B→215B；对标题/正文/唯一标记做 UTF-8 字节级扫描，**磁盘零明文** |
+| 卸载 | `/S` 卸载后 exe、桌面/开始菜单快捷方式、卸载注册表项全部删除；`data/` 保留（作品不丢） |
+| 已知问题 | 卸载向导「删除应用数据」勾选删除 `%APPDATA%/%LOCALAPPDATA%\{bundleId}`，对 `$INSTDIR\data` 无效（见待办 4） |
+
+### 复现要点
+- 启动程序时设 `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port=9222`，再用 node 脚本连 `http://127.0.0.1:9222/json` 驱动（参考 `tools/cdp_test.mjs`）
+- 静默安装 `setup.exe /S`、静默卸载 `uninstall.exe /S`；`$EXEDIR` 即安装器所在目录
+- 截图与临时脚本在会话工作区 `C:\Code\_installer_verify\`（非项目文件，可删）

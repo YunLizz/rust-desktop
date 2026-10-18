@@ -1,7 +1,7 @@
 # 锦书 JinShu — 项目摘要 & 交接说明
 
 > **换工具交接文件**。新 Agent 请从头读完再动手。
-> 生成时间：2026-09-17
+> 生成时间：2026-09-17（2026-10-18 完成 NSIS 安装包实测并更新）
 > 详细上下文见同目录 `CONTEXT_HANDOFF.md`；项目介绍见 `README.md`。
 
 ---
@@ -27,20 +27,17 @@
 - 换到新工具后，若工具自带终端在同一台机器上，直接 `git push` 即可，无需再输入密码。
 - **凭据不落盘**：项目文件中不含任何账号/密码/token。若新工具环境没有凭据，请在系统凭据管理器或环境变量中配置，**不要写进代码或文档**。
 
-### 当前 Git 状态（交接时快照）
+### 当前 Git 状态（2026-10-18 更新）
 ```
-本地 master : b84b0af
-远程 master : 74f6255
-状态        : 远程无新提交；本地领先 2 个提交（均为文档）
-未推送      : db61e18 docs: 增加跨对话上下文交接文档
+本地 master : f60c302
+远程 master : f60c302
+状态        : 本地与远程完全一致，工作树干净（无未提交改动）
+已推送      : f60c302 docs: 增加换工具交接摘要 + 定制 NSIS 安装器
               b84b0af docs: 补充仓库访问说明
-未提交改动  : src-tauri/tauri.conf.json（NSIS 模板指向）
-              packaging/windows/installer.nsi（新增，992 行）
-              src-tauri/Cargo.toml（仅行尾符差异，无实质改动）
-              verify.png（临时截图，可删）
+              db61e18 docs: 增加跨对话上下文交接文档
 ```
 
-> **新 Agent 优先动作**：先 `git push` 推送 2 个文档提交，再决定是否提交 NSIS 相关改动（见第七节待办）。
+> **NSIS 安装包已完成实测**（构建 / 安装 / 运行 / 加密落盘 / 卸载全部通过），详见第七节待办 1 与 `CONTEXT_HANDOFF.md` 第十一节。
 
 ---
 
@@ -90,6 +87,10 @@ cd src-tauri && cargo test
 # Windows 打包（前端构建 + 后端构建 + 压缩 zip）
 bash build_pkg_win.sh
 
+# 构建 NSIS 安装包（先构建前端，再打包；产物在 target/release/bundle/nsis/）
+cd frontend && npm run build && cd ..
+frontend/node_modules/.bin/tauri build --bundles nsis
+
 # Arch 打包（需在 Linux 上）
 cd packaging/arch && makepkg -si
 ```
@@ -117,7 +118,7 @@ cd packaging/arch && makepkg -si
 ## 五、功能状态
 
 ### 已实现
-书库 / 章节树（卷章层级）/ 大纲树（含"从章节生成骨架"）/ 人物树（按定位分组）+ 人物关系网 / 世界树 + 地图画布 / **任务线**（角色任务:归属角色+关联章节+任务链+公开暗线）/ **剪辑式横向时间轴**（分轨/拖动/缩放/类型配色）/ CodeMirror 编辑器（行号、4 字体、两端对齐、首行缩进、查找替换、宽度自适应）/ **本地起名机**（纯算法，6 风格组合）/ 导出 txt+md（md 含大纲）/ 深浅主题 + 8 强调色 / 命令面板 Ctrl+P / 自动保存 / 加密存储
+书库 / 章节树（卷章层级）/ 大纲树（含"从章节生成骨架"）/ 人物树（按定位分组）+ 人物关系网 / 世界树 + 地图画布 / **任务线**（角色任务:归属角色+关联章节+任务链+公开暗线）/ **剪辑式横向时间轴**（分轨/拖动/缩放/类型配色）/ CodeMirror 编辑器（行号、4 字体、两端对齐、首行缩进、查找替换、宽度自适应）/ **本地起名机**（纯算法，6 风格组合）/ 导出 txt+md（md 含大纲）/ 深浅主题 + 8 强调色 / 命令面板 Ctrl+P / 自动保存 / 加密存储 / **Windows NSIS 安装包**（默认装到安装器所在目录，2026-10-18 实测通过）
 
 ### 已屏蔽（后端保留，前端移除）
 **AI 功能** —— 用户明确说"**只是暂时屏蔽、后续还打算恢复**"：
@@ -147,12 +148,12 @@ cd packaging/arch && makepkg -si
 
 ## 七、待办 / 已知问题
 
-1. **提交并验证 NSIS 安装器**（`packaging/windows/installer.nsi` 已 vendored，改了默认安装目录为 `$EXEDIR`，但**尚未实际构建测试**；此前 NSIS 因网络超时失败）
-2. **Arch Linux 真机验证**（PKGBUILD 已写，未在 Linux 上跑过）
-3. **AI 功能恢复**（用户已说明后续要做）
-4. 时间轴"按章节分轨"时，无关联网章节的事件集中在"未关联章节"轨，可考虑支持手动指定轨道
-5. 起名机字库可继续扩充（现约 300 字）
-6. 清理临时文件 `verify.png`
+1. ~~提交并验证 NSIS 安装器~~ **已完成（2026-10-18 实测通过）**：`packaging/windows/installer.nsi` 已提交，构建、静默安装、运行、加密落盘、卸载全部验证；默认装到 `$EXEDIR\锦书`，不写 `%LOCALAPPDATA%`。详见 `CONTEXT_HANDOFF.md` 第十一节
+2. **卸载向导「删除应用数据」勾选对锦书无效**：模板删的是 `%APPDATA%/%LOCALAPPDATA%\{bundleId}`，而真实数据在 `$INSTDIR\data`；可选修复（勾选时删除 `$INSTDIR\data`）
+3. **Arch Linux 真机验证**（PKGBUILD 已写，未在 Linux 上跑过）
+4. **AI 功能恢复**（用户已说明后续要做）
+5. 时间轴"按章节分轨"时，无关联网章节的事件集中在"未关联章节"轨，可考虑支持手动指定轨道
+6. 起名机字库可继续扩充（现约 300 字）
 
 ---
 
@@ -166,6 +167,7 @@ cd packaging/arch && makepkg -si
 | **依赖下载失败** | 报 `CRYPT_E_REVOCATION_OFFLINE` 时，`src-tauri/.cargo/config.toml` 已设 `[http] check-revoke = false`。 |
 | **保存失败** | 报 `missing field xxx` → 所有 model 已加 `#[serde(default)]`，新增字段务必跟随。 |
 | **Vue 条件链** | 在 `v-if`/`v-else-if` 之间插组件会打断链导致后续区块不渲染，用 `<template>` 包裹。 |
+| **NSIS 构建** | 本机 `%LOCALAPPDATA%\tauri\NSIS` 已缓存 makensis，直接 `tauri build --bundles nsis` 即可，无需联网；安装/卸载前需关闭正在运行的 JinShu（模板含 `CheckIfAppIsRunning`）。 |
 
 ---
 
