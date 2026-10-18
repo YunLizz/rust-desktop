@@ -2,7 +2,7 @@
 
 > **换工具交接文件**。新 Agent 请从头读完再动手。
 > 生成时间：2026-09-17（2026-10-18 完成 NSIS 安装包实测并更新）
-> 详细上下文见同目录 `CONTEXT_HANDOFF.md`；项目介绍见 `README.md`。
+> 详细上下文见同目录 `CONTEXT_HANDOFF.md`；构建计划与后续路线见 `ROADMAP.md`；项目介绍见 `README.md`。
 
 ---
 
@@ -29,12 +29,11 @@
 
 ### 当前 Git 状态（2026-10-18 更新）
 ```
-本地 master : f60c302
-远程 master : f60c302
-状态        : 本地与远程完全一致，工作树干净（无未提交改动）
-已推送      : f60c302 docs: 增加换工具交接摘要 + 定制 NSIS 安装器
+分支 master : 本地与 origin/master 完全一致，工作树干净
+最新提交    : 以 `git log -1 --oneline` 为准（本文件与 ROADMAP 均已入库）
+近期提交    : 63f89bb docs: 更新交接文档 — NSIS 安装包实测通过
+              f60c302 docs: 增加换工具交接摘要 + 定制 NSIS 安装器
               b84b0af docs: 补充仓库访问说明
-              db61e18 docs: 增加跨对话上下文交接文档
 ```
 
 > **NSIS 安装包已完成实测**（构建 / 安装 / 运行 / 加密落盘 / 卸载全部通过），详见第七节待办 1 与 `CONTEXT_HANDOFF.md` 第十一节。
@@ -63,11 +62,12 @@ JinShu-rust/
 │   │                       ContextMenu / Icon / StatusBar
 │   └── src/views/          Library / SettingsView / StatsView / RelationGraph
 ├── packaging/
-│   ├── arch/PKGBUILD            Arch 打包
-│   └── windows/installer.nsi    【未提交】定制 NSIS 安装器模板
+│   ├── arch/PKGBUILD            Arch 打包（未真机验证）
+│   └── windows/installer.nsi    定制 NSIS 安装器模板（默认装到 $EXEDIR）
 ├── tools/cdp_test.mjs      CDP 端到端测试脚本
 ├── dist/                   打包产物
-├── CONTEXT_HANDOFF.md      详细上下文（10 章节）
+├── CONTEXT_HANDOFF.md      详细上下文（11 章节）
+├── ROADMAP.md              构建计划与后续路线图
 ├── CODE_WIKI.md / README.md
 └── build_pkg_win.sh        Windows 打包脚本
 ```
@@ -81,7 +81,7 @@ cd frontend && npm install && npm run build
 cd src-tauri && cargo build --release
 # 产物：src-tauri/target/release/jinshu.exe
 
-# 测试（7 个，全部通过）
+# 测试（6 个，全部通过）
 cd src-tauri && cargo test
 
 # Windows 打包（前端构建 + 后端构建 + 压缩 zip）
@@ -173,7 +173,7 @@ cd packaging/arch && makepkg -si
 
 ## 九、给新 Agent 的工作建议
 
-1. **先读** `CONTEXT_HANDOFF.md`（10 章节，含演化历史与设计决策全过程）
+1. **先读** `CONTEXT_HANDOFF.md`（11 章节，含演化历史与设计决策全过程）与 `ROADMAP.md`（构建计划、完成度与后续路线）
 2. **不要擅自改 UI 布局** —— 用户对四区划分有强主张，改前用带预览图的选项确认
 3. **报告先说结论，数据要实测**（本项目一贯用 CDP 实测 + 像素级验证 + 视觉子代理）
 4. **凭据永不落盘**

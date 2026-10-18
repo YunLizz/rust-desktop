@@ -2,7 +2,8 @@
 
 > **用途**：本文件用于跨对话继承项目上下文。新会话应先读本文，再动手。
 > **最后更新**：2026-10-18
-> **当前 HEAD**：`f60c302 docs: 增加换工具交接摘要 + 定制 NSIS 安装器`
+> **当前 HEAD**：以 `git log -1 --oneline` 为准
+> **配套文档**：`HANDOFF_SUMMARY.md`（一页摘要）、`ROADMAP.md`（构建计划与后续路线图）
 
 ---
 
@@ -93,6 +94,8 @@ JinShu-rust/
 ├── build_pkg_win.sh               # Windows 打包脚本
 ├── tools/cdp_test.mjs             # CDP 端到端测试脚本
 ├── README.md / CODE_WIKI.md       # 已同步
+├── HANDOFF_SUMMARY.md             # 一页摘要
+├── ROADMAP.md                     # 构建计划与后续路线图
 └── docs/screenshot.png
 ```
 
@@ -181,7 +184,7 @@ cd packaging/arch && makepkg -si   # Arch（需在 Linux 上执行）
 
 ### 测试
 ```bash
-cd src-tauri && cargo test     # 7 个测试，全部通过
+cd src-tauri && cargo test     # 6 个测试，全部通过
 ```
 | 测试 | 验证内容 |
 |---|---|
@@ -249,7 +252,10 @@ PowerShell 截图**必须声明 DPI 感知**（否则拿到缩放错误的图）
 6. 起名机字库可继续扩充（现约 300 字）
 
 ### 工作区状态
-`git status` **干净**，本地与 `origin/master` 同步（`f60c302`）。
+`git status` **干净**，本地与 `origin/master` 同步。
+
+### 计划与路线图
+构建/交付完成度、待办优先级与后续阶段计划见 `ROADMAP.md`。
 
 ---
 
