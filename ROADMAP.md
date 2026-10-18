@@ -2,7 +2,7 @@
 
 > **用途**：汇总项目的构建/交付计划、完成状态与后续路线，供换环境、换 Agent 交接使用。
 > **最后更新**：2026-10-18
-> **当前 HEAD**：`63f89bb`
+> **当前 HEAD**：以 `git log -1 --oneline` 为准
 > **配套文档**：`HANDOFF_SUMMARY.md`（一页摘要）、`CONTEXT_HANDOFF.md`（详细上下文）、`README.md`（项目介绍）
 
 ---
